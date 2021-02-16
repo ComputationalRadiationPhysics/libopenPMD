@@ -1019,19 +1019,19 @@ if(openPMD_BUILD_TESTING)
                         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
                 )
                 if(WIN32)
-                    string(REGEX REPLACE "/" "\\\\" WIN_BUILD_BASEDIR ${openPMD_BINARY_DIR})
+                    string(REGEX REPLACE "/" "\\\\" WIN_BUILD_PYDIR ${CMAKE_PYTHON_OUTPUT_DIRECTORY})
                     string(REGEX REPLACE "/" "\\\\" WIN_BUILD_BINDIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
                     string(REPLACE ";" "\\;" WIN_PATH "$ENV{PATH}")
                     string(REPLACE ";" "\\;" WIN_PYTHONPATH "$ENV{PYTHONPATH}")
                     set_property(TEST Unittest.py
                         PROPERTY ENVIRONMENT
                             "PATH=${WIN_BUILD_BINDIR}\\${CMAKE_BUILD_TYPE}\;${WIN_PATH}\n"
-                            "PYTHONPATH=${WIN_BUILD_BASEDIR}\\${CMAKE_INSTALL_PYTHONDIR}\\${CMAKE_BUILD_TYPE}\;${WIN_PYTHONPATH}"
+                            "PYTHONPATH=${WIN_BUILD_PYDIR}\;${WIN_PYTHONPATH}"
                     )
                 else()
                     set_tests_properties(Unittest.py
                         PROPERTIES ENVIRONMENT
-                            "PYTHONPATH=${openPMD_BINARY_DIR}/${CMAKE_INSTALL_PYTHONDIR}:$ENV{PYTHONPATH}"
+                            "PYTHONPATH=${CMAKE_PYTHON_OUTPUT_DIRECTORY}:$ENV{PYTHONPATH}"
                     )
                 endif()
             endif()
@@ -1097,15 +1097,19 @@ if(openPMD_BUILD_TESTING)
                  WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
             )
             if(WIN32)
+                string(REGEX REPLACE "/" "\\\\" WIN_BUILD_PYDIR ${CMAKE_PYTHON_OUTPUT_DIRECTORY})
+                string(REGEX REPLACE "/" "\\\\" WIN_BUILD_BINDIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+                string(REPLACE ";" "\\;" WIN_PATH "$ENV{PATH}")
+                string(REPLACE ";" "\\;" WIN_PYTHONPATH "$ENV{PYTHONPATH}")
                 set_property(TEST CLI.py.help.${pymodulename}
                     PROPERTY ENVIRONMENT
                         "PATH=${WIN_BUILD_BINDIR}\\${CMAKE_BUILD_TYPE}\;${WIN_PATH}\n"
-                        "PYTHONPATH=${WIN_BUILD_BASEDIR}\\${CMAKE_INSTALL_PYTHONDIR}\\${CMAKE_BUILD_TYPE}\;${WIN_PYTHONPATH}"
+                        "PYTHONPATH=${WIN_BUILD_PYDIR}\;${WIN_PYTHONPATH}"
                 )
             else()
                 set_tests_properties(CLI.py.help.${pymodulename}
                     PROPERTIES ENVIRONMENT
-                        "PYTHONPATH=${openPMD_BINARY_DIR}/${CMAKE_INSTALL_PYTHONDIR}:$ENV{PYTHONPATH}"
+                        "PYTHONPATH=${CMAKE_PYTHON_OUTPUT_DIRECTORY}:$ENV{PYTHONPATH}"
                 )
             endif()
         endforeach()
@@ -1142,19 +1146,19 @@ if(openPMD_BUILD_TESTING)
                         )
                     endif()
                     if(WIN32)
-                        string(REGEX REPLACE "/" "\\\\" WIN_BUILD_BASEDIR ${openPMD_BINARY_DIR})
+                        string(REGEX REPLACE "/" "\\\\" WIN_BUILD_PYDIR ${CMAKE_PYTHON_OUTPUT_DIRECTORY})
                         string(REGEX REPLACE "/" "\\\\" WIN_BUILD_BINDIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
                         string(REPLACE ";" "\\;" WIN_PATH "$ENV{PATH}")
                         string(REPLACE ";" "\\;" WIN_PYTHONPATH "$ENV{PYTHONPATH}")
                         set_property(TEST Example.py.${examplename}
                             PROPERTY ENVIRONMENT
                                 "PATH=${WIN_BUILD_BINDIR}\\${CMAKE_BUILD_TYPE}\;${WIN_PATH}\n"
-                                "PYTHONPATH=${WIN_BUILD_BASEDIR}\\${CMAKE_INSTALL_PYTHONDIR}\\${CMAKE_BUILD_TYPE}\;${WIN_PYTHONPATH}"
+                                "PYTHONPATH=${WIN_BUILD_PYDIR}\;${WIN_PYTHONPATH}"
                         )
                     else()
                         set_tests_properties(Example.py.${examplename}
                             PROPERTIES ENVIRONMENT
-                                "PYTHONPATH=${openPMD_BINARY_DIR}/${CMAKE_INSTALL_PYTHONDIR}:$ENV{PYTHONPATH}"
+                                "PYTHONPATH=${CMAKE_PYTHON_OUTPUT_DIRECTORY}:$ENV{PYTHONPATH}"
                         )
                     endif()
                 endif()
@@ -1174,6 +1178,15 @@ message("  C++ Compiler: ${CMAKE_CXX_COMPILER_ID} "
                         "${CMAKE_CXX_COMPILER_VERSION} "
                         "${CMAKE_CXX_COMPILER_WRAPPER}")
 message("    ${CMAKE_CXX_COMPILER}")
+message("")
+message("  Build prefix: ${openPMD_BINARY_DIR}")
+message("        bin: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+message("        lib: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+message("    include: ...")
+message("      cmake: ...")
+if(openPMD_HAVE_PYTHON)
+    message("     python: ${CMAKE_PYTHON_OUTPUT_DIRECTORY}")
+endif()
 message("")
 if(openPMD_INSTALL)
     message("  Installation prefix: ${CMAKE_INSTALL_PREFIX}")
