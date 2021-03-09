@@ -111,7 +111,9 @@ public:
      */
     void seriesFlush();
 
+// clang-format off
 OPENPMD_private:
+// clang-format on
     void seriesFlush( FlushLevel );
     /*
      * These members need to be shared pointers since distinct instances of

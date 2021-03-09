@@ -68,7 +68,9 @@ public:
     template< typename T >
     void store(uint64_t idx, T);
 
+// clang-format off
 OPENPMD_private:
+// clang-format on
     PatchRecordComponent();
 
     void flush(std::string const&);

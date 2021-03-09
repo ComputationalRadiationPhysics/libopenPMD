@@ -311,7 +311,9 @@ public:
      */
     void flush();
 
+// clang-format off
 OPENPMD_private:
+// clang-format on
     static constexpr char const * const BASEPATH = "/data/%T/";
 
     struct ParsedInput;
