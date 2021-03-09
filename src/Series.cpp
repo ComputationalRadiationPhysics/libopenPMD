@@ -21,6 +21,7 @@
 #include "openPMD/auxiliary/Date.hpp"
 #include "openPMD/auxiliary/Filesystem.hpp"
 #include "openPMD/auxiliary/JSON.hpp"
+#include "openPMD/auxiliary/MPI.hpp"
 #include "openPMD/auxiliary/StringManip.hpp"
 #include "openPMD/IO/AbstractIOHandler.hpp"
 #include "openPMD/IO/AbstractIOHandlerHelper.hpp"
@@ -159,6 +160,91 @@ SeriesImpl::setMeshesPath(std::string const& mp)
     else
         setAttribute("meshesPath", mp + "/");
     dirty() = true;
+    return *this;
+}
+
+chunk_assignment::RankMeta
+SeriesImpl::mpiRanksMetaInfo() const
+{
+    std::vector< std::string > asContiguousVector;
+    try
+    {
+        asContiguousVector =
+            getAttribute( "rankMetaInfo" ).get< std::vector< std::string > >();
+    }
+    catch( std::runtime_error const & )
+    {
+        // workaround: if vector has length 1, some backends may report a
+        // single value instead of a vector
+        asContiguousVector = {
+            getAttribute( "rankMetaInfo" ).get< std::string >()
+        };
+    }
+    chunk_assignment::RankMeta res;
+    for( size_t i = 0; i < asContiguousVector.size(); ++i )
+    {
+        res[ i ] = std::move( asContiguousVector[ i ] );
+    }
+    return res;
+}
+
+SeriesImpl &
+SeriesImpl::setMpiRanksMetaInfo( chunk_assignment::RankMeta rankMeta )
+{
+    std::vector< std::string > asContiguousVector;
+    asContiguousVector.reserve( rankMeta.size() );
+    try
+    {
+        for( auto & hostname : rankMeta )
+        {
+            asContiguousVector.emplace_back( std::move( hostname.second ) );
+        }
+    }
+    catch( std::out_of_range const & )
+    {
+        throw std::runtime_error( "[setMpiRanksMetaInfo] Can only set meta "
+                                  "info for contiguous ranks 0 to n." );
+    }
+
+    setAttribute( "rankMetaInfo", std::move( asContiguousVector ) );
+    return *this;
+}
+
+SeriesImpl &
+SeriesImpl::setMpiRanksMetaInfo( std::string const & myRankInfo )
+{
+    if( auxiliary::starts_with( myRankInfo, '@' ) )
+    {
+        // read from file
+        std::string fileName = auxiliary::replace_first( myRankInfo, "@", "" );
+        std::vector< std::string > rankMeta;
+        try
+        {
+            rankMeta = auxiliary::read_file_by_lines( fileName );
+        }
+        catch( auxiliary::no_such_file_error const & )
+        {
+            std::cerr << "Not setting rank meta information, because file has "
+                         "not been found: "
+                      << fileName << std::endl;
+            return *this;
+        }
+        setAttribute( "rankMetaInfo", rankMeta );
+        return *this;
+    }
+#if openPMD_HAVE_MPI
+    auto & series = get();
+    int rank;
+    MPI_Comm_rank( series.m_communicator, &rank );
+    std::vector< std::string > rankMeta =
+        auxiliary::collectStringsTo( series.m_communicator, 0, myRankInfo );
+    if( rank == 0 )
+    {
+        setAttribute( "rankMetaInfo", std::move( rankMeta ) );
+    }
+#else
+    setAttribute( "rankMetaInfo", std::vector< std::string >{ myRankInfo } );
+#endif
     return *this;
 }
 
@@ -1405,6 +1491,7 @@ SeriesInternal::SeriesInternal(
 {
     nlohmann::json optionsJson = auxiliary::parseOptions( options, comm );
     parseJsonOptions( *this, optionsJson );
+    m_communicator = comm;
     auto input = parseInput( filepath );
     auto handler = createIOHandler(
         input->path, at, input->format, comm, std::move( optionsJson ) );
