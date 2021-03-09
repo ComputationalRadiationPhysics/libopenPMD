@@ -3,6 +3,8 @@
 #   define OPENPMD_private public
 #   define OPENPMD_protected public
 #endif
+
+#include "openPMD/ChunkInfo.hpp"
 #include "openPMD/openPMD.hpp"
 
 #include <catch2/catch.hpp>
@@ -19,10 +21,77 @@
 
 using namespace openPMD;
 
+namespace test_chunk_assignment
+{
+using namespace openPMD::chunk_assignment;
+struct Params
+{
+    ChunkTable table;
+    RankMeta metaSource;
+    RankMeta metaSink;
+
+    void
+    init(
+        size_t sourceRanks,
+        size_t sinkRanks,
+        size_t in_per_host,
+        size_t out_per_host )
+    {
+        for( size_t rank = 0; rank < sourceRanks; ++rank )
+        {
+            table.emplace_back(
+                Offset{ rank, rank }, Extent{ rank, rank }, rank );
+            table.emplace_back(
+                Offset{ rank, 100 * rank }, Extent{ rank, 100 * rank }, rank );
+            metaSource.emplace( rank, std::to_string( rank / in_per_host ) );
+        }
+        for( size_t rank = 0; rank < sinkRanks; ++rank )
+        {
+            metaSink.emplace( rank, std::to_string( rank / out_per_host ) );
+        }
+    }
+};
+void print( RankMeta const & meta, ChunkTable const & table )
+{
+    for( auto const & chunk : table )
+    {
+        std::cout << "[HOST: " << meta.at( chunk.sourceID )
+                  << ",\tRank: " << chunk.sourceID << ",\tOffset: ";
+        for( auto offset : chunk.offset )
+        {
+            std::cout << offset << ", ";
+        }
+        std::cout << "\tExtent: ";
+        for( auto extent : chunk.extent )
+        {
+            std::cout << extent << ", ";
+        }
+        std::cout << "]" << std::endl;
+    }
+}
+} // namespace test_chunk_assignment
+
+TEST_CASE( "chunk_assignment", "[core]" )
+{
+    using namespace chunk_assignment;
+    test_chunk_assignment::Params params;
+    params.init( 6, 2, 2, 1 );
+    test_chunk_assignment::print( params.metaSource, params.table );
+    ByHostname byHostname( make_unique< RoundRobin >() );
+    FromPartialStrategy fullStrategy(
+        make_unique< ByHostname >( std::move( byHostname ) ),
+        make_unique< BinPacking >() );
+    ChunkTable res = assignChunks(
+        params.table, params.metaSource, params.metaSink, fullStrategy );
+    std::cout << "\nRESULTS:" << std::endl;
+    test_chunk_assignment::print( params.metaSink, res );
+}
+
 TEST_CASE( "versions_test", "[core]" )
 {
     auto const apiVersion = getVersion( );
     REQUIRE(2u == std::count_if(apiVersion.begin(), apiVersion.end(), []( char const c ){ return c == '.';}));
+
 
     auto const standard = getStandard( );
     REQUIRE(standard == "1.1.0");
