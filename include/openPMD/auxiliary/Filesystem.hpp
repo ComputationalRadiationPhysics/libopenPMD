@@ -100,5 +100,20 @@ std::string
 collective_file_read( std::string const & path, MPI_Comm );
 
 #endif
-} // namespace auxiliary
-} // namespace openPMD
+
+struct no_such_file_error
+{
+};
+
+/**
+ * @brief Read a file line by line.
+ *
+ * @param path Path to the file.
+ * @return Lines of the read file, excluding newline characters.
+ *
+ * @throws no_such_file_error
+ */
+std::vector< std::string >
+read_file_by_lines( std::string const & path );
+} // auxiliary
+} // openPMD
