@@ -3430,8 +3430,10 @@ serial_iterator( std::string const & file )
     Series readSeries( file, Access::READ_ONLY );
 
     size_t last_iteration_index = 0;
+    size_t numberOfIterations = 0;
     for( auto iteration : readSeries.readIterations() )
     {
+        ++numberOfIterations;
         auto E_x = iteration.meshes[ "E" ][ "x" ];
         REQUIRE( E_x.getDimensionality() == 1 );
         REQUIRE( E_x.getExtent()[ 0 ] == extent );
@@ -3444,6 +3446,7 @@ serial_iterator( std::string const & file )
         last_iteration_index = iteration.iterationIndex;
     }
     REQUIRE( last_iteration_index == 9 );
+    REQUIRE( numberOfIterations == 10 );
 }
 
 TEST_CASE( "serial_iterator", "[serial][adios2]" )

@@ -23,6 +23,9 @@
 #include "openPMD/Iteration.hpp"
 #include "openPMD/Series.hpp"
 
+#include <deque>
+#include <iostream>
+
 namespace openPMD
 {
 /**
@@ -54,7 +57,8 @@ class SeriesIterator
     using maybe_series_t = auxiliary::Option< Series >;
 
     maybe_series_t m_series;
-    iteration_index_t m_currentIteration = 0;
+    std::deque< iteration_index_t > m_iterationsInCurrentStep;
+    uint64_t m_currentIteration{};
 
 public:
     //! construct the end() iterator
@@ -71,6 +75,21 @@ public:
     bool operator!=( SeriesIterator const & other ) const;
 
     static SeriesIterator end();
+
+private:
+    inline bool setCurrentIteration()
+    {
+        if( m_iterationsInCurrentStep.empty() )
+        {
+            std::cerr << "[ReadIterations] Encountered a step without "
+                         "iterations. Closing the Series."
+                      << std::endl;
+            *this = end();
+            return false;
+        }
+        m_currentIteration = *m_iterationsInCurrentStep.begin();
+        return true;
+    }
 };
 
 /**

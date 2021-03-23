@@ -755,6 +755,7 @@ SeriesImpl::flushGorVBased( iterations_iterator begin, iterations_iterator end )
                 }
                 continue;
             }
+            series.m_currentlyActiveIterations.emplace( it->first );
             if( !it->second.written() )
             {
                 it->second.parent() = getWritable( &series.iterations );
@@ -968,7 +969,7 @@ void SeriesImpl::readOneIterationFileBased( std::string const & filePath )
     series.iterations.readAttributes(ReadMode::OverrideExisting );
 }
 
-void
+auxiliary::Option< std::deque< uint64_t > >
 SeriesImpl::readGorVBased( bool do_init )
 {
     auto & series = get();
@@ -1079,6 +1080,44 @@ SeriesImpl::readGorVBased( bool do_init )
         }
     };
 
+    auto currentSteps =
+        [ &series ]() -> auxiliary::Option< std::vector< uint64_t > >
+    {
+        using vec_t = std::vector< uint64_t >;
+        if( series.iterations.containsAttribute( "__step__" ) )
+        {
+            auto const & attribute =
+                series.iterations.getAttribute( "__step__" );
+            switch( attribute.dtype )
+            {
+            case Datatype::ULONGLONG:
+                return vec_t{ attribute.get< unsigned long long >() };
+            case Datatype::ULONG:
+                return vec_t{ attribute.get< unsigned long >() };
+            case Datatype::VEC_ULONGLONG: {
+                auto const & vec =
+                    attribute.get< std::vector< unsigned long long > >();
+                return vec_t{ vec.begin(), vec.end() };
+            }
+            case Datatype::VEC_ULONG: {
+                auto const & vec =
+                    attribute.get< std::vector< unsigned long > >();
+                return vec_t{ vec.begin(), vec.end() };
+            }
+            default: {
+                std::stringstream s;
+                s << "Unexpected datatype for '/data/__step__': "
+                  << attribute.dtype << std::endl;
+                throw std::runtime_error( s.str() );
+            }
+            }
+        }
+        else
+        {
+            return auxiliary::Option< std::vector< uint64_t > >{};
+        }
+    }();
+
     switch( iterationEncoding() )
     {
     case IterationEncoding::groupBased:
@@ -1086,25 +1125,36 @@ SeriesImpl::readGorVBased( bool do_init )
      * Sic! This happens when a file-based Series is opened in group-based mode.
      */
     case IterationEncoding::fileBased:
+    {
         for( auto const & it : *pList.paths )
         {
             uint64_t index = std::stoull( it );
             readSingleIteration( index, it, true );
         }
-        break;
+        if( currentSteps.has_value() )
+        {
+            auto const & vec = currentSteps.get();
+            return std::deque< uint64_t >{ vec.begin(), vec.end() };
+        }
+        else
+        {
+            return auxiliary::Option< std::deque< uint64_t > >();
+        }
+    }
     case IterationEncoding::variableBased:
     {
         uint64_t index = 0;
-        if( series.iterations.containsAttribute( "snapshot" ) )
+        if( currentSteps.has_value() && !currentSteps.get().empty() )
         {
-            index = series.iterations
-                .getAttribute( "snapshot" )
-                .get< uint64_t >();
+            // variable-based layout can only read one iteration at a time
+            // @todo warning or exception if the size is any other than 1?
+            index = currentSteps.get().at( 0 );
         }
         readSingleIteration( index, "", false );
-        break;
+        return std::deque< uint64_t >{ index };
     }
     }
+    throw std::runtime_error( "Unreachable!" );
 }
 
 void
@@ -1256,7 +1306,13 @@ SeriesImpl::advance(
          * opening an iteration's file by beginning a step on it.
          * So, return now.
          */
+        *iteration.m_closed = Iteration::CloseStatus::ClosedInBackend;
         return AdvanceStatus::OK;
+    }
+
+    if( mode == AdvanceMode::ENDSTEP )
+    {
+        flushStep( /* doFlush = */ false );
     }
 
     Parameter< Operation::ADVANCE > param;
@@ -1328,6 +1384,28 @@ SeriesImpl::advance(
     IOHandler()->m_flushLevel = FlushLevel::InternalFlush;
 
     return *param.status;
+}
+
+void SeriesImpl::flushStep( bool doFlush )
+{
+    auto & series = get();
+    if( !series.m_currentlyActiveIterations.empty() )
+    {
+        // @todo I don't think this understands changing extents over time
+        // Not strictly necessary yet but it might come biting us later
+        Parameter< Operation::WRITE_ATT > wAttr;
+        wAttr.changesOverSteps = true;
+        wAttr.name = "__step__";
+        wAttr.resource = std::vector< unsigned long long >{
+            series.m_currentlyActiveIterations.begin(),
+            series.m_currentlyActiveIterations.end() };
+        wAttr.dtype = Datatype::VEC_ULONGLONG;
+        IOHandler()->enqueue( IOTask( &series.iterations, wAttr ) );
+        if( doFlush )
+        {
+            IOHandler()->flush();
+        }
+    }
 }
 
 void
@@ -1437,6 +1515,7 @@ SeriesInternal::~SeriesInternal()
         if( get().m_lastFlushSuccessful )
         {
             flush();
+            flushStep( /* doFlush = */ true );
         }
     }
     catch( std::exception const & ex )

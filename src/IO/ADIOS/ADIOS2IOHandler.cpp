@@ -597,6 +597,11 @@ void ADIOS2IOHandlerImpl::writeAttribute(
     switch( attributeLayout() )
     {
         case AttributeLayout::ByAdiosAttributes:
+            if( parameters.changesOverSteps )
+            {
+                // cannot do this
+                return;
+            }
             switchType(
                 parameters.dtype,
                 detail::OldAttributeWriter(),
@@ -615,6 +620,13 @@ void ADIOS2IOHandlerImpl::writeAttribute(
             auto prefix = filePositionToString( pos );
 
             auto & filedata = getFileData( file );
+            if( parameters.changesOverSteps &&
+                filedata.streamStatus ==
+                    detail::BufferedActions::StreamStatus::NoStream )
+            {
+                // cannot do this
+                return;
+            }
             filedata.invalidateAttributesMap();
             m_dirty.emplace( std::move( file ) );
 

@@ -268,7 +268,7 @@ Iteration::flushGroupBased(uint64_t i)
 }
 
 void
-Iteration::flushVariableBased( uint64_t i )
+Iteration::flushVariableBased(uint64_t i)
 {
     if( !written() )
     {
@@ -546,9 +546,9 @@ void Iteration::read_impl( std::string const & groupPath )
     readAttributes( ReadMode::FullyReread );
 }
 
-AdvanceStatus
-Iteration::beginStep()
+auto Iteration::beginStep() -> BeginStepStatus
 {
+    BeginStepStatus res;
     using IE = IterationEncoding;
     auto & series = retrieveSeries();
     // Initialize file with this to quiet warnings
@@ -568,7 +568,8 @@ Iteration::beginStep()
         AdvanceMode::BEGINSTEP, *file, series.indexOf( *this ), *this );
     if( status != AdvanceStatus::OK )
     {
-        return status;
+        res.stepStatus = status;
+        return res;
     }
 
     // re-read -> new datasets might be available
@@ -583,12 +584,13 @@ Iteration::beginStep()
         auto newType =
             const_cast< Access * >( &this->IOHandler()->m_frontendAccess );
         *newType = Access::READ_WRITE;
-        series.readGorVBased( false );
+        res.iterationsInOpenedStep = series.readGorVBased( false );
         *newType = oldType;
         series.iterations.written() = previous;
     }
 
-    return status;
+    res.stepStatus = status;
+    return res;
 }
 
 void
@@ -612,6 +614,7 @@ Iteration::endStep()
     // @todo filebased check
     series.advance(
         AdvanceMode::ENDSTEP, *file, series.indexOf( *this ), *this );
+    series.m_currentlyActiveIterations.clear();
 }
 
 StepStatus
