@@ -156,8 +156,10 @@ public:
    * The return status code shall be stored as parameters.status.
    */
   virtual void
-  advance( Writable *, Parameter< Operation::ADVANCE > & )
-  {}
+  advance( Writable *, Parameter< Operation::ADVANCE > & parameters )
+  {
+    *parameters.status = AdvanceStatus::RANDOMACCESS;
+  }
 
   /** Close an openPMD group.
    *

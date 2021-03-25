@@ -83,7 +83,8 @@ SeriesIterator::SeriesIterator( Series series )
             Iteration::BeginStepStatus::AvailableIterations_t
                 availableIterations;
             std::tie( status, availableIterations ) = it->second.beginStep();
-            if( availableIterations.has_value() )
+            if( availableIterations.has_value()
+                && status != AdvanceStatus::RANDOMACCESS )
             {
                 m_iterationsInCurrentStep = availableIterations.get();
                 if( !m_iterationsInCurrentStep.empty() )
@@ -192,7 +193,8 @@ SeriesIterator & SeriesIterator::operator++()
     AdvanceStatus status;
     Iteration::BeginStepStatus::AvailableIterations_t availableIterations;
     std::tie( status, availableIterations ) = currentIteration.beginStep();
-    if( availableIterations.has_value() )
+    if( availableIterations.has_value()
+        && status != AdvanceStatus::RANDOMACCESS )
     {
         m_iterationsInCurrentStep = availableIterations.get();
     }

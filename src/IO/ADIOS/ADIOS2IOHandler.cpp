@@ -2709,7 +2709,7 @@ namespace detail
             m_IO.DefineAttribute< bool_representation >(
                 ADIOS2Defaults::str_usesstepsAttribute, 0 );
             flush( FlushLevel::UserFlush, /* writeAttributes = */ false );
-            return AdvanceStatus::OK;
+            return AdvanceStatus::RANDOMACCESS;
         }
 
         m_IO.DefineAttribute< bool_representation >(
