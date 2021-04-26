@@ -166,19 +166,17 @@ SeriesImpl::setMeshesPath(std::string const& mp)
 chunk_assignment::RankMeta
 SeriesImpl::mpiRanksMetaInfo() const
 {
+    auto attribute = getAttribute( "rankMetaInfo" );
     std::vector< std::string > asContiguousVector;
     try
     {
-        asContiguousVector =
-            getAttribute( "rankMetaInfo" ).get< std::vector< std::string > >();
+        asContiguousVector = attribute.get< std::vector< std::string > >();
     }
     catch( std::runtime_error const & )
     {
         // workaround: if vector has length 1, some backends may report a
         // single value instead of a vector
-        asContiguousVector = {
-            getAttribute( "rankMetaInfo" ).get< std::string >()
-        };
+        asContiguousVector = { attribute.get< std::string >() };
     }
     chunk_assignment::RankMeta res;
     for( size_t i = 0; i < asContiguousVector.size(); ++i )

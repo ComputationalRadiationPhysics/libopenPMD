@@ -20,14 +20,14 @@
  */
 #include "openPMD/ChunkInfo.hpp"
 
-#include <utility>
-
+#include "openPMD/auxiliary/MPI.hpp"
 
 #include <algorithm> // std::sort
 #include <iostream>
 #include <list>
 #include <map>
 #include <unistd.h>
+#include <utility>
 
 namespace openPMD
 {
@@ -100,6 +100,11 @@ namespace chunk_assignment
         RankMeta const & rankOut,
         Strategy & strategy )
     {
+        if( rankOut.size() == 0 )
+        {
+            throw std::runtime_error(
+                "[assignChunks] No output ranks defined" );
+        }
         return strategy.assign(
             PartialAssignment( std::move( table ) ), rankIn, rankOut );
     }
@@ -517,23 +522,36 @@ namespace chunk_assignment
 
 namespace host_info
 {
-    constexpr size_t MAX_HOSTNAME_LENGTH = 200;
+constexpr size_t MAX_HOSTNAME_LENGTH = 200;
 
-    std::string
-    byMethod( Method method )
-    {
-        static std::map< Method, std::string ( * )() > map{ { Method::HOSTNAME,
-                                                              &hostname } };
-        return ( *map[ method ] )();
-    }
+std::string byMethod( Method method )
+{
+    static std::map< Method, std::string ( * )() > map{
+        { Method::HOSTNAME, &hostname } };
+    return ( *map[ method ] )();
+}
 
-    std::string
-    hostname()
+#if openPMD_HAVE_MPI
+chunk_assignment::RankMeta byMethodCollective( MPI_Comm comm, Method method )
+{
+    auto myHostname = byMethod( method );
+    chunk_assignment::RankMeta res;
+    auto allHostnames =
+        auxiliary::distributeStringsToAllRanks( comm, myHostname );
+    for( size_t i = 0; i < allHostnames.size(); ++i )
     {
-        char hostname[ MAX_HOSTNAME_LENGTH ];
-        gethostname( hostname, MAX_HOSTNAME_LENGTH );
-        std::string res( hostname );
-        return res;
+        res[ i ] = allHostnames[ i ];
     }
+    return res;
+}
+#endif
+
+std::string hostname()
+{
+    char hostname[ MAX_HOSTNAME_LENGTH ];
+    gethostname( hostname, MAX_HOSTNAME_LENGTH );
+    std::string res( hostname );
+    return res;
+}
 } // namespace host_info
 } // namespace openPMD

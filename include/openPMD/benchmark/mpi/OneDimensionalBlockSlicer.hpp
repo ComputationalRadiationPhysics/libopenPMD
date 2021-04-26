@@ -43,5 +43,7 @@ namespace openPMD
             int size,
             int rank
         ) override;
+
+        virtual std::unique_ptr< BlockSlicer > clone() const override;
     };
 }

@@ -20,11 +20,15 @@
  */
 #pragma once
 
-#include "openPMD/benchmark/mpi/BlockSlicer.hpp"
+#include "openPMD/config.hpp"
+
 #include "openPMD/Dataset.hpp" // Offset, Extent
+#include "openPMD/benchmark/mpi/BlockSlicer.hpp"
 
+#if openPMD_HAVE_MPI
+#include <mpi.h>
+#endif
 #include <vector>
-
 
 namespace openPMD
 {
@@ -115,11 +119,12 @@ namespace chunk_assignment
          * @param out Meta information on reading processes, e.g. hostnames.
          * @return ChunkTable A table that assigns chunks to reading processes.
          */
-        virtual ChunkTable
-        assign(
+        virtual ChunkTable assign(
             PartialAssignment partialAssignment,
             RankMeta const & in,
             RankMeta const & out ) = 0;
+
+        virtual std::unique_ptr< Strategy > clone() const = 0;
 
         virtual ~Strategy() = default;
     };
@@ -149,11 +154,12 @@ namespace chunk_assignment
          *         that were not assigned and one that assigns chunks to
          *         reading processes.
          */
-        virtual PartialAssignment
-        assign(
+        virtual PartialAssignment assign(
             PartialAssignment partialAssignment,
             RankMeta const & in,
             RankMeta const & out ) = 0;
+
+        virtual std::unique_ptr< PartialStrategy > clone() const = 0;
 
         virtual ~PartialStrategy() = default;
     };
@@ -192,6 +198,12 @@ namespace chunk_assignment
         virtual ChunkTable
         assign( PartialAssignment, RankMeta const & in, RankMeta const & out );
 
+        virtual std::unique_ptr< Strategy > clone() const override
+        {
+            return std::unique_ptr< Strategy >( new FromPartialStrategy(
+                m_firstPass->clone(), m_secondPass->clone() ) );
+        }
+
     private:
         std::unique_ptr< PartialStrategy > m_firstPass;
         std::unique_ptr< Strategy > m_secondPass;
@@ -206,6 +218,11 @@ namespace chunk_assignment
     {
         ChunkTable
         assign( PartialAssignment, RankMeta const & in, RankMeta const & out );
+
+        virtual std::unique_ptr< Strategy > clone() const override
+        {
+            return std::unique_ptr< Strategy >( new RoundRobin );
+        }
     };
 
     /**
@@ -223,6 +240,12 @@ namespace chunk_assignment
         PartialAssignment
         assign( PartialAssignment, RankMeta const & in, RankMeta const & out )
             override;
+
+        virtual std::unique_ptr< PartialStrategy > clone() const override
+        {
+            return std::unique_ptr< PartialStrategy >(
+                new ByHostname( m_withinNode->clone() ) );
+        }
 
     private:
         std::unique_ptr< Strategy > m_withinNode;
@@ -246,9 +269,16 @@ namespace chunk_assignment
             unsigned int mpi_rank,
             unsigned int mpi_size );
 
-        ChunkTable
-        assign( PartialAssignment, RankMeta const & in, RankMeta const & out )
-            override;
+        ChunkTable assign(
+            PartialAssignment,
+            RankMeta const & in,
+            RankMeta const & out ) override;
+
+        virtual std::unique_ptr< Strategy > clone() const override
+        {
+            return std::unique_ptr< Strategy >( new ByCuboidSlice(
+                blockSlicer->clone(), totalExtent, mpi_rank, mpi_size ) );
+        }
 
     private:
         std::unique_ptr< BlockSlicer > blockSlicer;
@@ -278,32 +308,32 @@ namespace chunk_assignment
          */
         BinPacking( size_t splitAlongDimension = 0 );
 
-        ChunkTable
-        assign( PartialAssignment, RankMeta const & in, RankMeta const & out )
-            override;
-    };
+        ChunkTable assign(
+            PartialAssignment,
+            RankMeta const & in,
+            RankMeta const & out ) override;
 
-    /**
-     * C++11 doesn't have it and it's useful for some of these.
-     */
-    template< typename T, typename... Args >
-    std::unique_ptr< T >
-    make_unique( Args &&... args )
-    {
-        return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );
-    }
-} // namespace chunk_assignment
+        virtual std::unique_ptr< Strategy > clone() const override
+        {
+            return std::unique_ptr< Strategy >(
+                new BinPacking( splitAlongDimension ) );
+        }
+    };
+    } // namespace chunk_assignment
 
 namespace host_info
 {
-    enum class Method
-    {
-        HOSTNAME
-    };
+enum class Method
+{
+    HOSTNAME
+};
 
-    std::string byMethod( Method );
+std::string byMethod( Method );
 
-    std::string
-    hostname();
+#if openPMD_HAVE_MPI
+chunk_assignment::RankMeta byMethodCollective( MPI_Comm, Method );
+#endif
+
+std::string hostname();
 } // namespace host_info
 } // namespace openPMD

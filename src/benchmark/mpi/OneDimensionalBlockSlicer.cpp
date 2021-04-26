@@ -93,4 +93,10 @@ namespace openPMD
             std::move( localExtent )
         );
     }
+
+    std::unique_ptr< BlockSlicer > OneDimensionalBlockSlicer::clone() const
+    {
+        return std::unique_ptr< BlockSlicer >(
+            new OneDimensionalBlockSlicer( m_dim ) );
+    }
 }

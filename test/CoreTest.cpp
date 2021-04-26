@@ -77,10 +77,10 @@ TEST_CASE( "chunk_assignment", "[core]" )
     test_chunk_assignment::Params params;
     params.init( 6, 2, 2, 1 );
     test_chunk_assignment::print( params.metaSource, params.table );
-    ByHostname byHostname( make_unique< RoundRobin >() );
+    ByHostname byHostname( std::make_unique< RoundRobin >() );
     FromPartialStrategy fullStrategy(
-        make_unique< ByHostname >( std::move( byHostname ) ),
-        make_unique< BinPacking >() );
+        std::make_unique< ByHostname >( std::move( byHostname ) ),
+        std::make_unique< BinPacking >() );
     ChunkTable res = assignChunks(
         params.table, params.metaSource, params.metaSink, fullStrategy );
     std::cout << "\nRESULTS:" << std::endl;

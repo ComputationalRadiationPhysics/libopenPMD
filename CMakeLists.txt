@@ -1188,12 +1188,12 @@ if(openPMD_BUILD_TESTING)
                 )
                 add_test(NAME CLI.pipe.py
                     COMMAND sh -c
-                        "${MPI_TEST_EXE} ${Python_EXECUTABLE}                      \
+                        "${MPI_TEST_EXE} -n 2 ${Python_EXECUTABLE}                      \
                             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/openpmd-pipe         \
                             --infile ../samples/git-sample/data%T.h5               \
                             --outfile ../samples/git-sample/data%T.bp &&           \
                                                                                    \
-                        ${MPI_TEST_EXE} ${Python_EXECUTABLE}                       \
+                        ${MPI_TEST_EXE} -n 2 ${Python_EXECUTABLE}                       \
                             ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/openpmd-pipe         \
                             --infile ../samples/git-sample/thetaMode/data%T.h5     \
                             --outfile ../samples/git-sample/thetaMode/data%T.bp && \
