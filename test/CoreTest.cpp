@@ -81,8 +81,8 @@ TEST_CASE( "chunk_assignment", "[core]" )
     FromPartialStrategy fullStrategy(
         std::make_unique< ByHostname >( std::move( byHostname ) ),
         std::make_unique< BinPacking >() );
-    ChunkTable res = assignChunks(
-        params.table, params.metaSource, params.metaSink, fullStrategy );
+    ChunkTable res =
+        fullStrategy.assign( params.table, params.metaSource, params.metaSink );
     std::cout << "\nRESULTS:" << std::endl;
     test_chunk_assignment::print( params.metaSink, res );
 }

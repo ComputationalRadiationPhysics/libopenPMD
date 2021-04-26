@@ -80,9 +80,20 @@ namespace chunk_assignment
         }
     } // namespace
 
+    ChunkTable Strategy::assign(
+        ChunkTable table, RankMeta const & rankIn, RankMeta const & rankOut )
+    {
+        if( rankOut.size() == 0 )
+        {
+            throw std::runtime_error(
+                "[assignChunks] No output ranks defined" );
+        }
+        return this->assign(
+            PartialAssignment( std::move( table ) ), rankIn, rankOut );
+    }
+
     PartialAssignment::PartialAssignment(
-        ChunkTable notAssigned_in,
-        ChunkTable assigned_in )
+        ChunkTable notAssigned_in, ChunkTable assigned_in )
         : notAssigned( std::move( notAssigned_in ) )
         , assigned( std::move( assigned_in ) )
     {
@@ -93,29 +104,10 @@ namespace chunk_assignment
     {
     }
 
-    ChunkTable
-    assignChunks(
-        ChunkTable table,
-        RankMeta const & rankIn,
-        RankMeta const & rankOut,
-        Strategy & strategy )
+    PartialAssignment PartialStrategy::assign(
+        ChunkTable table, RankMeta const & rankIn, RankMeta const & rankOut )
     {
-        if( rankOut.size() == 0 )
-        {
-            throw std::runtime_error(
-                "[assignChunks] No output ranks defined" );
-        }
-        return strategy.assign(
-            PartialAssignment( std::move( table ) ), rankIn, rankOut );
-    }
-
-    PartialAssignment assignChunks(
-        ChunkTable table,
-        RankMeta const & rankIn,
-        RankMeta const & rankOut,
-        PartialStrategy & strategy )
-    {
-        return strategy.assign(
+        return this->assign(
             PartialAssignment( std::move( table ) ), rankIn, rankOut );
     }
 
@@ -139,8 +131,13 @@ namespace chunk_assignment
             out );
     }
 
-    ChunkTable
-    RoundRobin::assign(
+    std::unique_ptr< Strategy > FromPartialStrategy::clone() const
+    {
+        return std::unique_ptr< Strategy >( new FromPartialStrategy(
+            m_firstPass->clone(), m_secondPass->clone() ) );
+    }
+
+    ChunkTable RoundRobin::assign(
         PartialAssignment partialAssignment,
         RankMeta const &, // ignored parameter
         RankMeta const & out )
@@ -168,6 +165,11 @@ namespace chunk_assignment
             sinkChunks.push_back( std::move( chunk ) );
         }
         return sinkChunks;
+    }
+
+    std::unique_ptr< Strategy > RoundRobin::clone() const
+    {
+        return std::unique_ptr< Strategy >( new RoundRobin );
     }
 
     ByHostname::ByHostname( std::unique_ptr< Strategy > withinNode )
@@ -229,6 +231,12 @@ namespace chunk_assignment
             }
         }
         return res;
+    }
+
+    std::unique_ptr< PartialStrategy > ByHostname::clone() const
+    {
+        return std::unique_ptr< PartialStrategy >(
+            new ByHostname( m_withinNode->clone() ) );
     }
 
     ByCuboidSlice::ByCuboidSlice(
@@ -416,6 +424,12 @@ namespace chunk_assignment
         return res.assigned;
     }
 
+    std::unique_ptr< Strategy > ByCuboidSlice::clone() const
+    {
+        return std::unique_ptr< Strategy >( new ByCuboidSlice(
+            blockSlicer->clone(), totalExtent, mpi_rank, mpi_size ) );
+    }
+
     BinPacking::BinPacking( size_t splitAlongDimension_in )
         : splitAlongDimension( splitAlongDimension_in )
     {
@@ -517,6 +531,12 @@ namespace chunk_assignment
          */
 
         return sinkChunks;
+    }
+
+    std::unique_ptr< Strategy > BinPacking::clone() const
+    {
+        return std::unique_ptr< Strategy >(
+            new BinPacking( splitAlongDimension ) );
     }
 } // namespace chunk_assignment
 

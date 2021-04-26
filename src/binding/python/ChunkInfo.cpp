@@ -71,8 +71,8 @@ void init_Chunk(py::module &m) {
                 ChunkTable table,
                 RankMeta const & rankMetaIn,
                 RankMeta const & rankMetaOut ) {
-                return assignChunks(
-                    std::move( table ), rankMetaIn, rankMetaOut, self );
+                return self.assign(
+                    std::move( table ), rankMetaIn, rankMetaOut );
             },
             py::arg( "chunk_table" ),
             py::arg( "rank_meta_in" ) = RankMeta(),

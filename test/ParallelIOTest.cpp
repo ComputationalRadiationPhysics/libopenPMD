@@ -1360,8 +1360,8 @@ void adios2_chunk_distribution()
          * ranks. Easy, but not particularly efficient.
          */
         RoundRobin roundRobinStrategy;
-        auto roundRobinAssignment = assignChunks(
-            chunkTable, rankMetaIn, readingRanksHostnames, roundRobinStrategy );
+        auto roundRobinAssignment = roundRobinStrategy.assign(
+            chunkTable, rankMetaIn, readingRanksHostnames );
         printAssignment(
             "ROUND ROBIN", roundRobinAssignment, readingRanksHostnames );
 
@@ -1377,8 +1377,8 @@ void adios2_chunk_distribution()
          */
         ByHostname byHostname(
             std::make_unique< BinPacking >( /* splitAlongDimension = */ 1 ) );
-        auto byHostnamePartialAssignment = assignChunks(
-            chunkTable, rankMetaIn, readingRanksHostnames, byHostname );
+        auto byHostnamePartialAssignment =
+            byHostname.assign( chunkTable, rankMetaIn, readingRanksHostnames );
         printAssignment(
             "HOSTNAME, ASSIGNED",
             byHostnamePartialAssignment.assigned,
@@ -1400,11 +1400,8 @@ void adios2_chunk_distribution()
         FromPartialStrategy fromPartialStrategy(
             std::make_unique< ByHostname >( std::move( byHostname ) ),
             std::make_unique< BinPacking >( /* splitAlongDimension = */ 1 ) );
-        auto fromPartialAssignment = assignChunks(
-            chunkTable,
-            rankMetaIn,
-            readingRanksHostnames,
-            fromPartialStrategy );
+        auto fromPartialAssignment = fromPartialStrategy.assign(
+            chunkTable, rankMetaIn, readingRanksHostnames );
         printAssignment(
             "HOSTNAME WITH SECOND PASS",
             fromPartialAssignment,
@@ -1427,11 +1424,8 @@ void adios2_chunk_distribution()
             E_x.getExtent(),
             mpi_rank,
             mpi_size );
-        auto cuboidSliceAssignment = assignChunks(
-            chunkTable,
-            rankMetaIn,
-            readingRanksHostnames,
-            cuboidSliceStrategy );
+        auto cuboidSliceAssignment = cuboidSliceStrategy.assign(
+            chunkTable, rankMetaIn, readingRanksHostnames );
         printAssignment(
             "CUBOID SLICE", cuboidSliceAssignment, readingRanksHostnames );
     }
