@@ -62,7 +62,7 @@ void init_Chunk(py::module &m) {
 
     using namespace chunk_assignment;
 
-    py::class_< PartialStrategy >( m, "PartialStrategy" );
+    (void) py::class_< PartialStrategy >( m, "PartialStrategy" );
 
     py::class_< Strategy >( m, "Strategy" )
         .def(
