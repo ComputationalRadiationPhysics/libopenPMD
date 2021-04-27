@@ -26,8 +26,13 @@
 #include <iostream>
 #include <list>
 #include <map>
-#include <unistd.h>
 #include <utility>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace openPMD
 {
@@ -569,7 +574,10 @@ chunk_assignment::RankMeta byMethodCollective( MPI_Comm comm, Method method )
 std::string hostname()
 {
     char hostname[ MAX_HOSTNAME_LENGTH ];
-    gethostname( hostname, MAX_HOSTNAME_LENGTH );
+    if( gethostname( hostname, MAX_HOSTNAME_LENGTH ) )
+    {
+        throw std::runtime_error( "[gethostname] Could not inquire hostname." );
+    }
     std::string res( hostname );
     return res;
 }

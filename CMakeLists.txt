@@ -421,6 +421,11 @@ target_include_directories(openPMD PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+# Winsock library for gethostname() function on Windows
+if(WIN32)
+    target_link_libraries(openPMD PRIVATE ws2_32)
+endif()
+
 # C++11 std::variant (C++17 stdlib preview)
 # TODO not needed with C++17 compiler
 add_library(openPMD::thirdparty::mpark_variant INTERFACE IMPORTED)
