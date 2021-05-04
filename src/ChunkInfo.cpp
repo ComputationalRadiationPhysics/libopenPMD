@@ -192,14 +192,29 @@ namespace chunk_assignment
         std::map< std::string, ChunkTable > chunkGroups;
         ChunkTable & sourceChunks = res.notAssigned;
         ChunkTable & sinkChunks = res.assigned;
-        for( auto const & chunk : sourceChunks )
         {
-            std::string hostname = in.at( chunk.sourceID );
-            ChunkTable & chunksOnHost = chunkGroups[ hostname ];
-            chunksOnHost.push_back( std::move( chunk ) );
+            ChunkTable leftover;
+            for( auto const & chunk : sourceChunks )
+            {
+                auto it = in.find( chunk.sourceID );
+                if( it == in.end() )
+                {
+                    leftover.push_back( std::move( chunk ) );
+                }
+                else
+                {
+                    std::string hostname = it->second;
+                    ChunkTable & chunksOnHost = chunkGroups[ hostname ];
+                    chunksOnHost.push_back( std::move( chunk ) );
+                }
+            }
+            // undistributed chunks will be put back in later on
+            sourceChunks.clear();
+            for( auto & chunk : leftover )
+            {
+                sourceChunks.push_back( std::move( chunk ) );
+            }
         }
-        // undistributed chunks will be put back in later on
-        sourceChunks.clear();
         // chunkGroups will now contain chunks by hostname
         // the ranks are the source ranks
 
@@ -425,6 +440,8 @@ namespace chunk_assignment
             sinkSide.push_back( std::move( chunk ) );
         outer_loop:;
         }
+
+        std::cout << "BYCOBOIDSLICE assigned " << res.assigned.size() << " chunks" << std::endl;
 
         return res.assigned;
     }
