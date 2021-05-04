@@ -10,6 +10,8 @@ License: LGPLv3+
 """
 from .. import openpmd_api_cxx as io
 import argparse
+import os
+import re
 import sys  # sys.stderr.write
 
 # MPI is an optional dependency
@@ -19,7 +21,7 @@ try:
 except ImportError:
     HAVE_MPI = False
 
-debug = True
+debug = False
 
 
 class FallbackMPICommunicator:
@@ -39,7 +41,12 @@ or multiplexing the data path in streaming setups.
 Parallelization with MPI is optionally possible and is done automatically
 as soon as the mpi4py package is found and this tool is called in an MPI
 context. In that case, each dataset will be equally sliced along the dimension
-with the largest extent.""")
+with the largest extent.
+A chunk distribution strategy may be selected via the environment variable
+OPENPMD_CHUNK_DISTRIBUTION. Options include "roundrobin", "binpacking",
+"slicedataset" and "hostname_<1>_<2>", where <1> should be replaced with a
+strategy to be applied within a compute node and <2> with a secondary strategy
+in case the hostname strategy does not distribute all chunks.""")
 
     parser.add_argument('--infile', type=str, help='In file')
     parser.add_argument('--outfile', type=str, help='Out file')
@@ -83,6 +90,40 @@ class particle_patch_load:
     def run(self):
         for index, item in enumerate(self.data):
             self.dest.store(index, item)
+
+
+def distribution_strategy(dataset_extent,
+                          mpi_rank,
+                          mpi_size,
+                          strategy_identifier=None):
+    if strategy_identifier is None or not strategy_identifier:
+        if 'OPENPMD_CHUNK_DISTRIBUTION' in os.environ:
+            strategy_identifier = os.environ[
+                'OPENPMD_CHUNK_DISTRIBUTION'].lower()
+        else:
+            strategy_identifier = 'hostname_binpacking_slicedataset'  # default
+    match = re.search('hostname_(.*)_(.*)', strategy_identifier)
+    if match is not None:
+        inside_node = distribution_strategy(dataset_extent,
+                                            mpi_rank,
+                                            mpi_size,
+                                            strategy_identifier=match.group(1))
+        second_phase = distribution_strategy(
+            dataset_extent,
+            mpi_rank,
+            mpi_size,
+            strategy_identifier=match.group(2))
+        return io.FromPartialStrategy(io.ByHostname(inside_node), second_phase)
+    elif strategy_identifier == 'roundrobin':
+        return io.RoundRobin()
+    elif strategy_identifier == 'binpacking':
+        return io.BinPacking()
+    elif strategy_identifier == 'slicedataset':
+        return io.ByCuboidSlice(io.OneDimensionalBlockSlicer(), dataset_extent,
+                                mpi_rank, mpi_size)
+    else:
+        raise RuntimeError("Unknown distribution strategy: " +
+                           strategy_identifier)
 
 
 class pipe:
@@ -200,7 +241,8 @@ class pipe:
                 dest.make_constant(src.get_attribute("value"))
             else:
                 chunk_table = src.available_chunks()
-                strategy = io.BinPacking()
+                strategy = distribution_strategy(shape, self.comm.rank,
+                                                 self.comm.size)
                 my_chunks = strategy.assign_chunks(chunk_table, self.inranks,
                                                    self.outranks)
                 for chunk in [
