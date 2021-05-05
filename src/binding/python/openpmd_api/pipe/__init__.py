@@ -126,7 +126,7 @@ class pipe:
             print("Opened input and output on rank {}.".format(self.comm.rank))
             sys.stdout.flush()
         if inseries.contains_attribute("rankMetaInfo"):
-            self.inranks = inseries.mpi_ranks_meta_info()
+            self.inranks = inseries.mpi_ranks_meta_info
         else:
             self.inranks = {}
         self.__copy(inseries, outseries)
