@@ -23,6 +23,7 @@
 
 #include "MPI.hpp"
 #include "openPMD/ChunkInfo.hpp"
+#include "openPMD/benchmark/mpi/OneDimensionalBlockSlicer.hpp"
 
 #include <string>
 #include <utility> // std::move
@@ -118,6 +119,13 @@ void init_Chunk(py::module &m) {
             py::init( []( Strategy const & withinNode )
                       { return ByHostname( withinNode.clone() ); } ),
             py::arg( "strategy_within_node" ) );
+
+    ( void )py::class_< BlockSlicer >( m, "BlockSlicer" );
+
+    py::class_< OneDimensionalBlockSlicer, BlockSlicer >(
+        m, "OneDimensionalBlockSlicer" )
+        .def( py::init<>() )
+        .def( py::init< Extent::value_type >(), py::arg( "dim" ) );
 
     py::class_< ByCuboidSlice, Strategy >( m, "ByCuboidSlice" )
         .def(
