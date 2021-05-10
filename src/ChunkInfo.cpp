@@ -441,8 +441,6 @@ namespace chunk_assignment
         outer_loop:;
         }
 
-        std::cout << "BYCOBOIDSLICE assigned " << res.assigned.size() << " chunks" << std::endl;
-
         return res.assigned;
     }
 
