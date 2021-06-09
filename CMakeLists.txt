@@ -351,6 +351,7 @@ set(CORE_SOURCE
         src/ChunkInfo.cpp
         src/Dataset.cpp
         src/Datatype.cpp
+        src/Error.cpp
         src/Format.cpp
         src/Iteration.cpp
         src/IterationEncoding.cpp

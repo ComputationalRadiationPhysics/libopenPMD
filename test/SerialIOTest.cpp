@@ -4297,3 +4297,52 @@ TEST_CASE( "deferred_parsing", "[serial]" )
         deferred_parsing( t );
     }
 }
+
+void append_mode( std::string const & extension )
+{
+    std::string jsonConfig = R"END(
+{
+    "adios2":
+    {
+        "schema": 20210209,
+        "engine":
+        {
+            "usesteps" : true
+        }
+    }
+})END";
+    auto writeSomeIterations = []( WriteIterations && writeIterations,
+                                   std::vector< uint64_t > indices )
+    {
+        for( auto index : indices )
+        {
+            auto it = writeIterations[ index ];
+            auto dataset = it.meshes[ "E" ][ "x" ];
+            dataset.resetDataset( { Datatype::INT, { 1 } } );
+            dataset.makeConstant< int >( 0 );
+            // test that it works without closing too
+            it.close();
+        }
+    };
+    {
+        Series write(
+            "../samples/append." + extension, Access::CREATE, jsonConfig );
+        writeSomeIterations(
+            write.writeIterations(), std::vector< uint64_t >{ 0, 1 } );
+    }
+    {
+        Series write(
+            "../samples/append." + extension, Access::APPEND, jsonConfig );
+        writeSomeIterations(
+            write.writeIterations(), std::vector< uint64_t >{ 2, 3 } );
+    }
+    {
+        Series read( "../samples/append." + extension, Access::READ_ONLY );
+        REQUIRE( read.iterations.size() == 4 );
+    }
+}
+
+TEST_CASE( "append_mode", "[serial]" )
+{
+    append_mode( "bp" );
+}
