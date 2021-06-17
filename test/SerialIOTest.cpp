@@ -1525,13 +1525,24 @@ void fileBased_write_test(const std::string & backend)
         REQUIRE(o.iterations[5].time< double >() == 5.0);
     }
 
-    // @todo re-enable appending to an existing series
     if( backend == "bp" )
     {
-        return;
+        // Append + filebased iteration encoding works for all backends
+        Series o = Series("../samples/subdir/serial_fileBased_write%T." + backend, Access::APPEND);
+        // Append mode does not support reading anything that already exists
+        REQUIRE(o.iterations.size() == 0);
+        // write something to trigger opening of the file
+        o.iterations[ 6 ].particles[ "e" ][ "position" ][ "x" ].resetDataset(
+            { Datatype::DOUBLE, { 10 } } );
+        o.iterations[ 6 ]
+            .particles[ "e" ][ "position" ][ "x" ]
+            .makeConstant< double >( 1.0 );
     }
-    // extend existing series with new step and auto-detection of iteration padding
+    else
     {
+        // @todo enable a workflow for ADIOS2 where only either reading from or
+        // writing to an iteration works
+        // extend existing series with new step and auto-detection of iteration padding
         Series o = Series("../samples/subdir/serial_fileBased_write%T." + backend, Access::READ_WRITE);
 
         REQUIRE(o.iterations.size() == 5);
@@ -1548,6 +1559,24 @@ void fileBased_write_test(const std::string & backend)
         || auxiliary::directory_exists("../samples/subdir/serial_fileBased_write00000004." + backend)));
 
     // additional iteration with different iteration padding but similar content
+    if( backend == "bp" )
+    {
+        Series o = Series("../samples/subdir/serial_fileBased_write%01T." + backend, Access::APPEND);
+
+        REQUIRE(o.iterations.empty());
+
+        auto& it = o.iterations[10];
+        ParticleSpecies& e = it.particles["e"];
+        e["position"]["x"].resetDataset(Dataset(Datatype::DOUBLE, {42}));
+        e["positionOffset"]["x"].resetDataset(Dataset(Datatype::DOUBLE, {42}));
+        e["position"]["x"].makeConstant(1.23);
+        e["positionOffset"]["x"].makeConstant(1.23);
+
+        fileBased_add_EDpic(e, 42);
+
+        REQUIRE(o.iterations.size() == 1);
+    }
+    else
     {
         Series o = Series("../samples/subdir/serial_fileBased_write%01T." + backend, Access::READ_WRITE);
 
@@ -1574,6 +1603,7 @@ void fileBased_write_test(const std::string & backend)
     }
 
     // write with auto-detection and in-consistent padding
+    if( backend != "bp" )
     {
         REQUIRE_THROWS_WITH(Series("../samples/subdir/serial_fileBased_write%T." + backend, Access::READ_WRITE),
             Catch::Equals("Cannot write to a series with inconsistent iteration padding. Please specify '%0<N>T' or open as read-only."));
@@ -4332,6 +4362,10 @@ void append_mode( std::string const & extension )
     {
         Series write(
             "../samples/append." + extension, Access::CREATE, jsonConfig );
+        if( write.backend() != "ADIOS2" )
+        {
+            return;
+        }
         writeSomeIterations(
             write.writeIterations(), std::vector< uint64_t >{ 0, 1 } );
     }

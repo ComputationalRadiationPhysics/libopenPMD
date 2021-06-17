@@ -97,6 +97,25 @@ enum class FlushLevel : unsigned char
  */
 class AbstractIOHandler
 {
+    friend class SeriesImpl;
+
+private:
+    void setIterationEncoding( IterationEncoding encoding )
+    {
+        /*
+         * In file-based iteration encoding, the APPEND mode is handled entirely
+         * by the frontend, the backend should just treat it as CREATE mode
+         * @todo maybe replace the encoding parameter of the OPEN_FILE task
+         *     with this?
+         */
+        if( encoding == IterationEncoding::fileBased &&
+            m_backendAccess == Access::APPEND )
+        {
+            // do we really want to have those as const members..?
+            *const_cast< Access * >( &m_backendAccess ) = Access::CREATE;
+        }
+    }
+
 public:
 #if openPMD_HAVE_MPI
     AbstractIOHandler(std::string path, Access at, MPI_Comm)

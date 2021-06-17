@@ -293,6 +293,7 @@ SeriesImpl::setIterationEncoding(IterationEncoding ie)
             setAttribute("iterationEncoding", std::string("variableBased"));
             break;
     }
+    IOHandler()->setIterationEncoding( ie );
     return *this;
 }
 
@@ -419,6 +420,39 @@ SeriesImpl::parseInput(std::string filepath)
     return input;
 }
 
+namespace
+{
+/*
+ * Negative return values:
+ * -1: No padding detected, just keep the default from the file name
+ * -2: Contradicting paddings detected
+ */
+int autoDetectPadding(
+    std::function< Match( std::string const & ) > isPartOfSeries,
+    std::string const & directory )
+{
+    bool isContained;
+    int padding;
+    uint64_t iterationIndex;
+    std::set< int > paddings;
+    for( auto const & entry : auxiliary::list_directory( directory ) )
+    {
+        std::tie( isContained, padding, iterationIndex ) =
+            isPartOfSeries( entry );
+        if( isContained )
+        {
+            paddings.insert( padding );
+        }
+    }
+    if( paddings.size() == 1u )
+        return *paddings.begin();
+    else if( paddings.empty() )
+        return -1;
+    else
+        return -2;
+}
+}
+
 void SeriesImpl::init(
     std::shared_ptr< AbstractIOHandler > ioHandler,
     std::unique_ptr< SeriesImpl::ParsedInput > input )
@@ -468,10 +502,41 @@ void SeriesImpl::init(
         break;
     }
     case Access::CREATE:
+    {
+        initDefaults( input->iterationEncoding );
+        setIterationEncoding( input->iterationEncoding );
+        break;
+    }
     case Access::APPEND:
     {
         initDefaults( input->iterationEncoding );
         setIterationEncoding(input->iterationEncoding);
+        if( input->iterationEncoding != IterationEncoding::fileBased )
+        {
+            break;
+        }
+        // this does not yet detect the correct padding
+        int padding = autoDetectPadding(
+            matcher(
+                series.m_filenamePrefix,
+                series.m_filenamePadding,
+                series.m_filenamePostfix,
+                series.m_format ),
+            IOHandler()->directory );
+        switch( padding )
+        {
+        case -2:
+            throw std::runtime_error(
+                "Cannot write to a series with inconsistent iteration padding. "
+                "Please specify '%0<N>T' or open as read-only." );
+        case -1:
+            std::cerr << "No matching iterations found: " << name()
+                      << std::endl;
+            break;
+        default:
+            series.m_filenamePadding = padding;
+            break;
+        }
         break;
     }
     }
