@@ -97,20 +97,6 @@ enum class FlushLevel : unsigned char
  */
 class AbstractIOHandler
 {
-private:
-    inline void init()
-    {
-        /*
-         * Logically, the Append mode should be treated as equivalent to CREATE
-         * mode. Backends should just not delete any pre-existing data.
-         */
-        if( m_frontendAccess == Access::APPEND )
-        {
-            // do we really want to have those as const members..?
-            *const_cast< Access * >( &m_frontendAccess ) = Access::CREATE;
-        }
-    }
-
 public:
 #if openPMD_HAVE_MPI
     AbstractIOHandler(std::string path, Access at, MPI_Comm)

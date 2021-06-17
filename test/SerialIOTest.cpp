@@ -1525,6 +1525,11 @@ void fileBased_write_test(const std::string & backend)
         REQUIRE(o.iterations[5].time< double >() == 5.0);
     }
 
+    // @todo re-enable appending to an existing series
+    if( backend == "bp" )
+    {
+        return;
+    }
     // extend existing series with new step and auto-detection of iteration padding
     {
         Series o = Series("../samples/subdir/serial_fileBased_write%T." + backend, Access::READ_WRITE);
