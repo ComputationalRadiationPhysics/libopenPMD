@@ -139,13 +139,19 @@ namespace
 void
 ParticleSpecies::flush(std::string const& path)
 {
-    if(IOHandler()->m_frontendAccess == Access::READ_ONLY )
+    switch( IOHandler()->m_frontendAccess )
+    {
+    case Access::READ_ONLY:
     {
         for( auto& record : *this )
             record.second.flush(record.first);
         for( auto& patch : particlePatches )
             patch.second.flush(patch.first);
-    } else
+        break;
+    }
+    case Access::READ_WRITE:
+    case Access::CREATE:
+    case Access::APPEND:
     {
         auto it = find("position");
         if ( it != end() )
@@ -165,6 +171,8 @@ ParticleSpecies::flush(std::string const& path)
             for( auto& patch : particlePatches )
                 patch.second.flush(patch.first);
         }
+        break;
+    }
     }
 }
 

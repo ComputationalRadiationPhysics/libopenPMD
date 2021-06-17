@@ -436,7 +436,10 @@ void SeriesImpl::init(
     series.m_filenamePostfix = input->filenamePostfix;
     series.m_filenamePadding = input->filenamePadding;
 
-    if(IOHandler()->m_frontendAccess == Access::READ_ONLY || IOHandler()->m_frontendAccess == Access::READ_WRITE )
+    switch( IOHandler()->m_frontendAccess )
+    {
+    case Access::READ_ONLY:
+    case Access::READ_WRITE:
     {
         /* Allow creation of values in Containers and setting of Attributes
          * Would throw for Access::READ_ONLY */
@@ -462,10 +465,15 @@ void SeriesImpl::init(
         }
 
         *newType = oldType;
-    } else
+        break;
+    }
+    case Access::CREATE:
+    case Access::APPEND:
     {
         initDefaults( input->iterationEncoding );
         setIterationEncoding(input->iterationEncoding);
+        break;
+    }
     }
 }
 
@@ -545,8 +553,9 @@ SeriesImpl::flushFileBased( iterations_iterator begin, iterations_iterator end )
         throw std::runtime_error(
             "fileBased output can not be written with no iterations." );
 
-    if( IOHandler()->m_frontendAccess == Access::READ_ONLY ||
-        IOHandler()->m_frontendAccess == Access::APPEND )
+    switch( IOHandler()->m_frontendAccess )
+    {
+    case Access::READ_ONLY:
         for( auto it = begin; it != end; ++it )
         {
             if( *it->second.m_closed
@@ -593,7 +602,10 @@ SeriesImpl::flushFileBased( iterations_iterator begin, iterations_iterator end )
             }
             IOHandler()->flush();
         }
-    else
+        break;
+    case Access::READ_WRITE:
+    case Access::CREATE:
+    case Access::APPEND:
     {
         bool allDirty = dirty();
         for( auto it = begin; it != end; ++it )
@@ -678,6 +690,8 @@ SeriesImpl::flushFileBased( iterations_iterator begin, iterations_iterator end )
             dirty() = allDirty;
         }
         dirty() = false;
+        break;
+    }
     }
 }
 
@@ -685,7 +699,9 @@ void
 SeriesImpl::flushGorVBased( iterations_iterator begin, iterations_iterator end )
 {
     auto & series = get();
-    if( IOHandler()->m_frontendAccess == Access::READ_ONLY )
+    switch( IOHandler()->m_frontendAccess )
+    {
+    case Access::READ_ONLY:
         for( auto it = begin; it != end; ++it )
         {
             if( *it->second.m_closed
@@ -716,7 +732,10 @@ SeriesImpl::flushGorVBased( iterations_iterator begin, iterations_iterator end )
             }
             IOHandler()->flush();
         }
-    else
+        break;
+    case Access::READ_WRITE:
+    case Access::CREATE:
+    case Access::APPEND:
     {
         if( !written() )
         {
@@ -782,6 +801,8 @@ SeriesImpl::flushGorVBased( iterations_iterator begin, iterations_iterator end )
 
         flushAttributes();
         IOHandler()->flush();
+        break;
+    }
     }
 }
 
