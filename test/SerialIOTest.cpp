@@ -4375,3 +4375,63 @@ TEST_CASE( "append_mode", "[serial]" )
         append_mode( t );
     }
 }
+
+void append_mode_filebased( std::string const & extension )
+{
+    std::string jsonConfig = R"END(
+{
+    "adios2":
+    {
+        "schema": 20210209,
+        "engine":
+        {
+            "usesteps" : true
+        }
+    }
+})END";
+    auto writeSomeIterations = []( WriteIterations && writeIterations,
+                                   std::vector< uint64_t > indices )
+    {
+        for( auto index : indices )
+        {
+            auto it = writeIterations[ index ];
+            auto dataset = it.meshes[ "E" ][ "x" ];
+            dataset.resetDataset( { Datatype::INT, { 1 } } );
+            dataset.makeConstant< int >( 0 );
+            // test that it works without closing too
+            it.close();
+        }
+    };
+    {
+        Series write(
+            "../samples/append_%T." + extension, Access::CREATE, jsonConfig );
+        writeSomeIterations(
+            write.writeIterations(), std::vector< uint64_t >{ 0, 1 } );
+    }
+    {
+        Series write(
+            "../samples/append_%T." + extension, Access::APPEND, jsonConfig );
+        writeSomeIterations(
+            write.writeIterations(), std::vector< uint64_t >{ 4, 5 } );
+        write.flush();
+    }
+    {
+        Series write(
+            "../samples/append_%T." + extension, Access::APPEND, jsonConfig );
+        writeSomeIterations(
+            write.writeIterations(), std::vector< uint64_t >{ 2, 3 } );
+        write.flush();
+    }
+    {
+        Series read( "../samples/append_%T." + extension, Access::READ_ONLY );
+        REQUIRE( read.iterations.size() == 6 );
+    }
+}
+
+TEST_CASE( "append_mode_filebased", "[serial]" )
+{
+    for( auto const & t : testedFileExtensions() )
+    {
+        append_mode_filebased( t );
+    }
+}
