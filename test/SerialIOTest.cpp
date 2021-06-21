@@ -4344,10 +4344,6 @@ void append_mode( std::string const & extension )
     {
         Series write(
             "../samples/append." + extension, Access::CREATE, jsonConfig );
-        if( write.backend() != "ADIOS2" )
-        {
-            return;
-        }
         writeSomeIterations(
             write.writeIterations(), std::vector< uint64_t >{ 0, 1 } );
     }
@@ -4365,5 +4361,8 @@ void append_mode( std::string const & extension )
 
 TEST_CASE( "append_mode", "[serial]" )
 {
-    append_mode( "bp" );
+    // @todo test for file-based appending
+    append_mode( "json" );
+    // append_mode( "bp" );
+    //append_mode( "h5" );
 }
