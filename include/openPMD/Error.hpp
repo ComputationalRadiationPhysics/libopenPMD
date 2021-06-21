@@ -17,6 +17,8 @@ public:
     }
 
     virtual const char * what() const noexcept final;
+
+    virtual ~Error() noexcept = default;
 };
 
 namespace error
