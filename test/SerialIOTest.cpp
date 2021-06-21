@@ -4350,8 +4350,17 @@ void append_mode( std::string const & extension )
     {
         Series write(
             "../samples/append." + extension, Access::APPEND, jsonConfig );
+        if( write.backend() == "ADIOS1" )
+        {
+            REQUIRE_THROWS_AS(
+                write.flush(), error::OperationUnsupportedInBackend );
+            // destructor will be noisy now
+            return;
+        }
+
         writeSomeIterations(
             write.writeIterations(), std::vector< uint64_t >{ 2, 3 } );
+        write.flush();
     }
     {
         Series read( "../samples/append." + extension, Access::READ_ONLY );
@@ -4361,8 +4370,8 @@ void append_mode( std::string const & extension )
 
 TEST_CASE( "append_mode", "[serial]" )
 {
-    // @todo test for file-based appending
-    append_mode( "json" );
-    // append_mode( "bp" );
-    //append_mode( "h5" );
+    for( auto const & t : testedFileExtensions() )
+    {
+        append_mode( t );
+    }
 }
