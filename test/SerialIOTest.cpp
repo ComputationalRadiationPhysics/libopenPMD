@@ -1559,24 +1559,6 @@ void fileBased_write_test(const std::string & backend)
         || auxiliary::directory_exists("../samples/subdir/serial_fileBased_write00000004." + backend)));
 
     // additional iteration with different iteration padding but similar content
-    if( backend == "bp" )
-    {
-        Series o = Series("../samples/subdir/serial_fileBased_write%01T." + backend, Access::APPEND);
-
-        REQUIRE(o.iterations.empty());
-
-        auto& it = o.iterations[10];
-        ParticleSpecies& e = it.particles["e"];
-        e["position"]["x"].resetDataset(Dataset(Datatype::DOUBLE, {42}));
-        e["positionOffset"]["x"].resetDataset(Dataset(Datatype::DOUBLE, {42}));
-        e["position"]["x"].makeConstant(1.23);
-        e["positionOffset"]["x"].makeConstant(1.23);
-
-        fileBased_add_EDpic(e, 42);
-
-        REQUIRE(o.iterations.size() == 1);
-    }
-    else
     {
         Series o = Series("../samples/subdir/serial_fileBased_write%01T." + backend, Access::READ_WRITE);
 

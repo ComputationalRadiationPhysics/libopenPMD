@@ -1054,8 +1054,15 @@ ADIOS2IOHandlerImpl::adios2AccessMode( std::string const & fullPath )
     case Access::READ_ONLY:
         return adios2::Mode::Read;
     case Access::READ_WRITE:
-        throw error::OperationUnsupportedInBackend(
-            "ADIOS2", "READ_WRITE mode" );
+        if( auxiliary::directory_exists( fullPath ) ||
+            auxiliary::file_exists( fullPath ) )
+        {
+            return adios2::Mode::Read;
+        }
+        else
+        {
+            return adios2::Mode::Write;
+        }
     case Access::APPEND:
         return adios2::Mode::Append;
     }
