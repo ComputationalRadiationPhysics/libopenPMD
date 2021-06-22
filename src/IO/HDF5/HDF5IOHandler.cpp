@@ -182,7 +182,14 @@ HDF5IOHandlerImpl::createFile(Writable* writable,
             flags = H5F_ACC_TRUNC;
             break;
         case Access::APPEND:
-            flags = H5F_ACC_RDWR;
+            if( auxiliary::file_exists( name ) )
+            {
+                flags = H5F_ACC_RDWR;
+            }
+            else
+            {
+                flags = H5F_ACC_TRUNC;
+            }
             break;
         case Access::READ_WRITE:
             flags = H5F_ACC_EXCL;
