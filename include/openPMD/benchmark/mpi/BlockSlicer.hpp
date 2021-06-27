@@ -23,6 +23,8 @@
 
 #include "openPMD/Dataset.hpp"
 
+#include <memory>
+
 
 namespace openPMD
 {
@@ -48,6 +50,8 @@ namespace openPMD
             int size,
             int rank
         ) = 0;
+
+        virtual std::unique_ptr< BlockSlicer > clone() const = 0;
 
         /** This class will be derived from
          */

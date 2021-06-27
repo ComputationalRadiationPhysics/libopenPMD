@@ -66,6 +66,11 @@ namespace internal
  */
 class SeriesData : public AttributableData
 {
+    // friend class openPMD::SeriesImpl;
+    // friend class openPMD::Iteration;
+    // friend class openPMD::Series;
+    // friend class SeriesInternal;
+
 public:
     explicit SeriesData() = default;
 
@@ -96,6 +101,12 @@ public:
      */
     StepStatus m_stepStatus = StepStatus::NoStep;
     bool m_parseLazily = false;
+#if openPMD_HAVE_MPI
+    /*
+     * @todo find a better place to put MPI-specific members
+     */
+    MPI_Comm m_communicator;
+#endif
 }; // SeriesData
 
 class SeriesInternal;
@@ -166,6 +177,32 @@ public:
      * @return  Reference to modified series.
      */
     SeriesImpl& setMeshesPath(std::string const& meshesPath);
+
+    /**
+     * @throw   no_such_attribute_error If optional attribute is not present.
+     * @return  Vector with a String per (writing) MPI rank, indicating user-
+     *          defined meta information per rank. Example: host name.
+     */
+    chunk_assignment::RankMeta
+    mpiRanksMetaInfo() const;
+
+    /**
+     * @brief Set the Mpi Ranks Meta Info attribute, i.e. a Vector with
+     *        a String per (writing) MPI rank, indicating user-
+     *        defined meta information per rank. Example: host name.
+     *
+     * @return Reference to modified series.
+     */
+    SeriesImpl & setMpiRanksMetaInfo( chunk_assignment::RankMeta );
+
+    /**
+     * @brief Set the Mpi Ranks Meta Info attribute, i.e. a Vector with
+     *        a String per (writing) MPI rank, indicating user-
+     *        defined meta information per rank. Example: host name.
+     *
+     * @return Reference to modified series.
+     */
+    SeriesImpl & setMpiRanksMetaInfo( std::string const & myRankInfo );
 
     /**
      * @throw   no_such_attribute_error If optional attribute is not present.
