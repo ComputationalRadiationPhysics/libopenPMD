@@ -1084,10 +1084,10 @@ SeriesImpl::readGorVBased( bool do_init )
         [ &series ]() -> auxiliary::Option< std::vector< uint64_t > >
     {
         using vec_t = std::vector< uint64_t >;
-        if( series.iterations.containsAttribute( "__step__" ) )
+        if( series.iterations.containsAttribute( "snapshot" ) )
         {
             auto const & attribute =
-                series.iterations.getAttribute( "__step__" );
+                series.iterations.getAttribute( "snapshot" );
             switch( attribute.dtype )
             {
             case Datatype::ULONGLONG:
@@ -1106,7 +1106,7 @@ SeriesImpl::readGorVBased( bool do_init )
             }
             default: {
                 std::stringstream s;
-                s << "Unexpected datatype for '/data/__step__': "
+                s << "Unexpected datatype for '/data/snapshot': "
                   << attribute.dtype << std::endl;
                 throw std::runtime_error( s.str() );
             }
@@ -1395,7 +1395,7 @@ void SeriesImpl::flushStep( bool doFlush )
         // Not strictly necessary yet but it might come biting us later
         Parameter< Operation::WRITE_ATT > wAttr;
         wAttr.changesOverSteps = true;
-        wAttr.name = "__step__";
+        wAttr.name = "snapshot";
         wAttr.resource = std::vector< unsigned long long >{
             series.m_currentlyActiveIterations.begin(),
             series.m_currentlyActiveIterations.end() };
