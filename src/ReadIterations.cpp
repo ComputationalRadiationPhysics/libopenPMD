@@ -83,8 +83,7 @@ SeriesIterator::SeriesIterator( Series series )
             Iteration::BeginStepStatus::AvailableIterations_t
                 availableIterations;
             std::tie( status, availableIterations ) = it->second.beginStep();
-            if( availableIterations.has_value()
-                && status != AdvanceStatus::RANDOMACCESS )
+            if( availableIterations.has_value() )
             {
                 m_iterationsInCurrentStep = availableIterations.get();
                 if( !m_iterationsInCurrentStep.empty() )
@@ -113,12 +112,12 @@ SeriesIterator::SeriesIterator( Series series )
         }
         }
 
-        if( !setCurrentIteration() )
+        if( status == AdvanceStatus::OVER )
         {
             *this = end();
             return;
         }
-        if( status == AdvanceStatus::OVER )
+        if( !setCurrentIteration() )
         {
             *this = end();
             return;
@@ -174,6 +173,7 @@ SeriesIterator & SeriesIterator::operator++()
             series.iterations[ m_currentIteration ].beginStep();
             return *this;
         }
+        throw std::runtime_error( "Control flow error!" );
     }
 
     if( series.iterationEncoding() == IterationEncoding::fileBased )

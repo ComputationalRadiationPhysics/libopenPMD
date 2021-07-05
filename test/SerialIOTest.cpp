@@ -4003,7 +4003,8 @@ iterate_nonstreaming_series(
             auto E_x = iteration.meshes[ "E" ][ "x" ];
             E_x.resetDataset(
                 openPMD::Dataset( openPMD::Datatype::INT, { 2, extent } ) );
-            std::vector< int > data( extent, i );
+            int value = variableBasedLayout ? 0 : i;
+            std::vector< int > data( extent, value );
             E_x.storeChunk( data, { 0, 0 }, { 1, extent } );
             bool taskSupportedByBackend = true;
             DynamicMemoryView< int > memoryView = E_x.storeChunk< int >(
@@ -4083,10 +4084,11 @@ iterate_nonstreaming_series(
             iteration.close();
         }
 
+        int value = variableBasedLayout ? 0 : iteration.iterationIndex;
         for( size_t i = 0; i < extent; ++i )
         {
-            REQUIRE( chunk.get()[ i ] == int(iteration.iterationIndex) );
-            REQUIRE( chunk2.get()[ i ] == int(i) );
+            REQUIRE( chunk.get()[ i ] == value );
+            REQUIRE( chunk2.get()[ i ] == int( i ) );
         }
         last_iteration_index = iteration.iterationIndex;
     }
