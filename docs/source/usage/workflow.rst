@@ -1,5 +1,27 @@
 .. _workflow:
 
+Access modes
+============
+
+The openPMD-api distinguishes between a number of different access modes:
+
+* **Create mode**: Used for creating a new Series from scratch.
+  Any file possibly existing in the specified location will be overwritten.
+* **Read-only mode**: Used for reading from an existing Series.
+  No modifications will be made.
+* **Read/Write mode**: Creates a new Series if not existing, otherwise opens an existing Series for reading and writing.
+  New datasets and iterations will be inserted as needed.
+  Not fully supported by all backends:
+  * ADIOS1: Automatically coerced to ... mode @todo
+  * ADIOS2: Automatically coerced to *Create* mode if the file does not exist yet and to *Read-only* mode if it exists.
+    Since this happens on a per-file level, this mode allows to read from existing iterations and write to new iterations at the same time in file-based iteration encoding.
+* **Append mode**: Restricted mode for appending new iterations to an existing Series that is supported by all backends.
+  The API is equivalent to that of the *Create* mode, meaning that no reading is supported whatsoever.
+  If the Series does not exist yet, this behaves equivalently to the *Create* mode.
+  Existing iterations will not be deleted, newly-written iterations will be inserted.
+
+  **Warning:** The result of writing again an iteration that already exists is currently unspecified.
+
 Workflow
 ========
 
