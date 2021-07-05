@@ -515,7 +515,6 @@ void SeriesImpl::init(
         {
             break;
         }
-        // this does not yet detect the correct padding
         int padding = autoDetectPadding(
             matcher(
                 series.m_filenamePrefix,
