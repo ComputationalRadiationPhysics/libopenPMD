@@ -268,7 +268,7 @@ Iteration::flushGroupBased(uint64_t i)
 }
 
 void
-Iteration::flushVariableBased(uint64_t i)
+Iteration::flushVariableBased( uint64_t i )
 {
     if( !written() )
     {

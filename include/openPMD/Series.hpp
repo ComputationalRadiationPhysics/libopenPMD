@@ -82,6 +82,10 @@ public:
     Container< Iteration, uint64_t > iterations{};
 
     auxiliary::Option< WriteIterations > m_writeIterations;
+    /*
+     * For writing: Remember which iterations have been written in the currently
+     * active output step. Use this later when writing the snapshot attribute.
+     */
     std::set< uint64_t > m_currentlyActiveIterations;
     auxiliary::Option< std::string > m_overrideFilebasedFilename;
     std::string m_name;
