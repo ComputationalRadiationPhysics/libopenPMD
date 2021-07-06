@@ -29,6 +29,8 @@
 #include "openPMD/ParticleSpecies.hpp"
 #include "openPMD/Streaming.hpp"
 
+#include <deque>
+#include <tuple>
 
 namespace openPMD
 {
@@ -248,6 +250,30 @@ private:
             std::make_shared< auxiliary::Option< DeferredParseAccess > >(
                 auxiliary::Option< DeferredParseAccess >() );
 
+    struct BeginStepStatus
+    {
+        using AvailableIterations_t =
+            auxiliary::Option< std::deque< uint64_t > >;
+
+        AdvanceStatus stepStatus{};
+        /*
+         * If the iteration attribute `snapshot` is present, the value of that
+         * attribute. Otherwise empty.
+         */
+        AvailableIterations_t iterationsInOpenedStep;
+
+        inline operator AdvanceStatus() const
+        {
+            return stepStatus;
+        }
+        inline
+        operator std::tuple< AdvanceStatus &, AvailableIterations_t & >()
+        {
+            return std::tuple< AdvanceStatus &, AvailableIterations_t & >{
+                stepStatus, iterationsInOpenedStep };
+        }
+    };
+
     /**
      * @brief Begin an IO step on the IO file (or file-like object)
      *        containing this iteration. In case of group-based iteration
@@ -255,8 +281,7 @@ private:
      *
      * @return AdvanceStatus
      */
-    AdvanceStatus
-    beginStep();
+    BeginStepStatus beginStep();
 
     /**
      * @brief End an IO step on the IO file (or file-like object)

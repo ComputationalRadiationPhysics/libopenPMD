@@ -41,7 +41,9 @@
 #   include <mpi.h>
 #endif
 
+#include <deque>
 #include <map>
+#include <set>
 #include <string>
 
 // expose private and protected members for invasive testing
@@ -80,6 +82,11 @@ public:
     Container< Iteration, uint64_t > iterations{};
 
     auxiliary::Option< WriteIterations > m_writeIterations;
+    /*
+     * For writing: Remember which iterations have been written in the currently
+     * active output step. Use this later when writing the snapshot attribute.
+     */
+    std::set< uint64_t > m_currentlyActiveIterations;
     auxiliary::Option< std::string > m_overrideFilebasedFilename;
     std::string m_name;
     std::string m_filenamePrefix;
@@ -380,8 +387,11 @@ OPENPMD_private:
      * Note on re-parsing of a Series:
      * If init == false, the parsing process will seek for new
      * Iterations/Records/Record Components etc.
+     * If series.iterations contains the attribute `snapshot`, returns its
+     * value (will only be true in variable-based iteration encoding).
      */
-    void readGorVBased( bool init = true );
+    auxiliary::Option< std::deque< uint64_t > >
+    readGorVBased( bool init = true );
     void readBase();
     std::string iterationFilename( uint64_t i );
     void openIteration( uint64_t index, Iteration iteration );
@@ -414,6 +424,8 @@ OPENPMD_private:
         internal::AttributableData & file,
         iterations_iterator it,
         Iteration & iteration );
+
+    void flushStep( bool doFlush );
 }; // SeriesImpl
 
 namespace internal

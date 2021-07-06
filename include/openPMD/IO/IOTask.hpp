@@ -469,7 +469,8 @@ struct OPENPMDAPI_EXPORT Parameter< Operation::WRITE_ATT > : public AbstractPara
 {
     Parameter() = default;
     Parameter(Parameter const & p) : AbstractParameter(),
-        name(p.name), dtype(p.dtype), resource(p.resource) {}
+        name(p.name), dtype(p.dtype), changesOverSteps(p.changesOverSteps),
+        resource(p.resource) {}
 
     std::unique_ptr< AbstractParameter >
     clone() const override
@@ -480,6 +481,7 @@ struct OPENPMDAPI_EXPORT Parameter< Operation::WRITE_ATT > : public AbstractPara
 
     std::string name = "";
     Datatype dtype = Datatype::UNDEFINED;
+    bool changesOverSteps = false;
     Attribute::resource resource;
 };
 

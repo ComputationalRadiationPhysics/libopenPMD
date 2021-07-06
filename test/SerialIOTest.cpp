@@ -3430,8 +3430,10 @@ serial_iterator( std::string const & file )
     Series readSeries( file, Access::READ_ONLY );
 
     size_t last_iteration_index = 0;
+    size_t numberOfIterations = 0;
     for( auto iteration : readSeries.readIterations() )
     {
+        ++numberOfIterations;
         auto E_x = iteration.meshes[ "E" ][ "x" ];
         REQUIRE( E_x.getDimensionality() == 1 );
         REQUIRE( E_x.getExtent()[ 0 ] == extent );
@@ -3444,6 +3446,7 @@ serial_iterator( std::string const & file )
         last_iteration_index = iteration.iterationIndex;
     }
     REQUIRE( last_iteration_index == 9 );
+    REQUIRE( numberOfIterations == 10 );
 }
 
 TEST_CASE( "serial_iterator", "[serial][adios2]" )
@@ -4000,7 +4003,8 @@ iterate_nonstreaming_series(
             auto E_x = iteration.meshes[ "E" ][ "x" ];
             E_x.resetDataset(
                 openPMD::Dataset( openPMD::Datatype::INT, { 2, extent } ) );
-            std::vector< int > data( extent, i );
+            int value = variableBasedLayout ? 0 : i;
+            std::vector< int > data( extent, value );
             E_x.storeChunk( data, { 0, 0 }, { 1, extent } );
             bool taskSupportedByBackend = true;
             DynamicMemoryView< int > memoryView = E_x.storeChunk< int >(
@@ -4080,10 +4084,11 @@ iterate_nonstreaming_series(
             iteration.close();
         }
 
+        int value = variableBasedLayout ? 0 : iteration.iterationIndex;
         for( size_t i = 0; i < extent; ++i )
         {
-            REQUIRE( chunk.get()[ i ] == int(iteration.iterationIndex) );
-            REQUIRE( chunk2.get()[ i ] == int(i) );
+            REQUIRE( chunk.get()[ i ] == value );
+            REQUIRE( chunk2.get()[ i ] == int( i ) );
         }
         last_iteration_index = iteration.iterationIndex;
     }
@@ -4295,5 +4300,77 @@ TEST_CASE( "deferred_parsing", "[serial]" )
     for( auto const & t : testedFileExtensions() )
     {
         deferred_parsing( t );
+    }
+}
+
+void chaotic_stream( std::string filename, bool variableBased )
+{
+    std::vector< uint64_t > iterations{ 5, 9, 1, 3, 4, 6, 7, 8, 2, 0 };
+    std::string jsonConfig = R"(
+{
+    "adios2": {
+        "schema": 20210209,
+        "engine": {
+            "type": "bp4",
+            "usesteps": true
+        }
+    }
+})";
+
+    bool weirdOrderWhenReading{};
+
+    {
+        Series series( filename, Access::CREATE, jsonConfig );
+        /*
+         * When using ADIOS2 steps, iterations are read not by logical order
+         * (iteration index), but by order of writing.
+         */
+        weirdOrderWhenReading = series.backend() == "ADIOS2" &&
+            series.iterationEncoding() != IterationEncoding::fileBased;
+        if( variableBased )
+        {
+            if( series.backend() != "ADIOS2" )
+            {
+                return;
+            }
+            series.setIterationEncoding( IterationEncoding::variableBased );
+        }
+        for( auto currentIteration : iterations )
+        {
+            auto dataset =
+                series.writeIterations()[ currentIteration ]
+                    .meshes[ "iterationOrder" ][ MeshRecordComponent::SCALAR ];
+            dataset.resetDataset( { determineDatatype< uint64_t >(), { 10 } } );
+            dataset.storeChunk( iterations, { 0 }, { 10 } );
+            // series.writeIterations()[ currentIteration ].close();
+        }
+    }
+
+    {
+        Series series( filename, Access::READ_ONLY );
+        size_t index = 0;
+        for( auto iteration : series.readIterations() )
+        {
+            if( weirdOrderWhenReading )
+            {
+                REQUIRE( iteration.iterationIndex == iterations[ index ] );
+            }
+            else
+            {
+                REQUIRE( iteration.iterationIndex == index );
+            }
+            ++index;
+        }
+        REQUIRE( index == iterations.size() );
+    }
+}
+
+TEST_CASE( "chaotic_stream", "[serial]" )
+{
+    for( auto const & t : testedFileExtensions() )
+    {
+        chaotic_stream( "../samples/chaotic_stream_filebased_%T." + t, false );
+        chaotic_stream( "../samples/chaotic_stream." + t, false );
+        chaotic_stream( "../samples/chaotic_stream_vbased." + t, true );
     }
 }

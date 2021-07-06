@@ -41,7 +41,7 @@ SeriesIterator::SeriesIterator( Series series )
     }
     else
     {
-        auto openIteration = [ &it ]()
+        auto openIteration = []( Iteration & iteration )
         {
             /*
              * @todo
@@ -49,10 +49,10 @@ SeriesIterator::SeriesIterator( Series series )
              * Use case: See Python ApiTest testListSeries:
              * Call listSeries twice.
              */
-            if( *it->second.m_closed !=
+            if( *iteration.m_closed !=
                 Iteration::CloseStatus::ClosedInBackend )
             {
-                it->second.open();
+                iteration.open();
             }
         };
         AdvanceStatus status{};
@@ -65,28 +65,72 @@ SeriesIterator::SeriesIterator( Series series )
              * so do that now. There is only one step per file, so beginning
              * the step after parsing the file is ok.
              */
-            openIteration();
+
+            openIteration( series.iterations.begin()->second );
             status = it->second.beginStep();
+            for( auto const & pair : m_series.get().iterations )
+            {
+                m_iterationsInCurrentStep.push_back( pair.first );
+            }
             break;
         case IterationEncoding::groupBased:
-        case IterationEncoding::variableBased:
+        case IterationEncoding::variableBased: {
             /*
              * In group-based iteration layout, we have definitely already had
              * access to the file until now. Better to begin a step right away,
              * otherwise we might get another step's data.
              */
-            status = it->second.beginStep();
-            openIteration();
+            Iteration::BeginStepStatus::AvailableIterations_t
+                availableIterations;
+            std::tie( status, availableIterations ) = it->second.beginStep();
+            /*
+             * In random-access mode, do not use the information read in the
+             * `snapshot` attribute, instead simply go through iterations
+             * one by one in ascending order (fallback implementation in the
+             * second if branch).
+             */
+            if( availableIterations.has_value() &&
+                status != AdvanceStatus::RANDOMACCESS )
+            {
+                m_iterationsInCurrentStep = availableIterations.get();
+                if( !m_iterationsInCurrentStep.empty() )
+                {
+                    openIteration( series.iterations.at(
+                        m_iterationsInCurrentStep.at( 0 ) ) );
+                }
+            }
+            else if ( !series.iterations.empty() )
+            {
+                /*
+                 * Fallback implementation: Assume that each step corresponds
+                 * with an iteration in ascending order.
+                 */
+                m_iterationsInCurrentStep =
+                    { series.iterations.begin()->first };
+                openIteration( series.iterations.begin()->second );
+            }
+            else
+            {
+                // this is a no-op, but let's keep it explicit
+                m_iterationsInCurrentStep = {};
+            }
+
             break;
         }
+        }
+
         if( status == AdvanceStatus::OVER )
+        {
+            *this = end();
+            return;
+        }
+        if( !setCurrentIteration() )
         {
             *this = end();
             return;
         }
         it->second.setStepStatus( StepStatus::DuringStep );
     }
-    m_currentIteration = it->first;
 }
 
 SeriesIterator & SeriesIterator::operator++()
@@ -99,63 +143,106 @@ SeriesIterator & SeriesIterator::operator++()
     Series & series = m_series.get();
     auto & iterations = series.iterations;
     auto & currentIteration = iterations[ m_currentIteration ];
+    auto oldIterationIndex = m_currentIteration;
+
+    m_iterationsInCurrentStep.pop_front();
+    if( !m_iterationsInCurrentStep.empty() )
+    {
+        m_currentIteration = *m_iterationsInCurrentStep.begin();
+        switch( series.iterationEncoding() )
+        {
+        case IterationEncoding::groupBased:
+        case IterationEncoding::variableBased:
+        {
+            if( !currentIteration.closed() )
+            {
+                *currentIteration.m_closed =
+                    Iteration::CloseStatus::ClosedInFrontend;
+            }
+            auto begin = series.iterations.find( oldIterationIndex );
+            auto end = begin;
+            ++end;
+            series.flush_impl(
+                begin,
+                end,
+                FlushLevel::UserFlush,
+                /* flushIOHandler = */ true );
+
+            series.iterations[ m_currentIteration ].open();
+            return *this;
+        }
+        case IterationEncoding::fileBased:
+            if( !currentIteration.closed() )
+            {
+                currentIteration.close();
+            }
+            series.iterations[ m_currentIteration ].open();
+            series.iterations[ m_currentIteration ].beginStep();
+            return *this;
+        }
+        throw std::runtime_error( "Unreachable!" );
+    }
+
+    // The currently active iterations have been exhausted.
+    // Now see if there are further iterations to be found.
+
+    if( series.iterationEncoding() == IterationEncoding::fileBased )
+    {
+        // this one is handled above, stream is over once it proceeds to here
+        *this = end();
+        return *this;
+    }
+
     if( !currentIteration.closed() )
     {
         currentIteration.close();
     }
-    switch( series.iterationEncoding() )
+
+    // since we are in group-based iteration layout, it does not
+    // matter which iteration we begin a step upon
+    AdvanceStatus status;
+    Iteration::BeginStepStatus::AvailableIterations_t availableIterations;
+    std::tie( status, availableIterations ) = currentIteration.beginStep();
+
+    if( availableIterations.has_value() &&
+        status != AdvanceStatus::RANDOMACCESS )
     {
-        using IE = IterationEncoding;
-    case IE::groupBased:
-    case IE::variableBased: {
-        // since we are in group-based iteration layout, it does not
-        // matter which iteration we begin a step upon
-        AdvanceStatus status = currentIteration.beginStep();
-        if( status == AdvanceStatus::OVER )
+        m_iterationsInCurrentStep = availableIterations.get();
+    }
+    else
+    {
+        /*
+         * Fallback implementation: Assume that each step corresponds
+         * with an iteration in ascending order.
+         */
+        auto it = iterations.find( m_currentIteration );
+        auto itEnd = iterations.end();
+        if( it == itEnd )
         {
             *this = end();
             return *this;
         }
-        currentIteration.setStepStatus( StepStatus::DuringStep );
-        break;
-    }
-    default:
-        break;
-    }
-    auto it = iterations.find( m_currentIteration );
-    auto itEnd = iterations.end();
-    if( it == itEnd )
-    {
-        *this = end();
-        return *this;
-    }
-    ++it;
-    if( it == itEnd )
-    {
-        *this = end();
-        return *this;
-    }
-    m_currentIteration = it->first;
-    if( *it->second.m_closed != Iteration::CloseStatus::ClosedInBackend )
-    {
-        it->second.open();
-    }
-    switch( series.iterationEncoding() )
-    {
-        using IE = IterationEncoding;
-    case IE::fileBased: {
-        auto & iteration = series.iterations[ m_currentIteration ];
-        AdvanceStatus status = iteration.beginStep();
-        if( status == AdvanceStatus::OVER )
+        ++it;
+        if( it == itEnd )
         {
             *this = end();
             return *this;
         }
-        iteration.setStepStatus( StepStatus::DuringStep );
-        break;
+        m_iterationsInCurrentStep = { it->first };
     }
-    default:
-        break;
+    setCurrentIteration();
+
+    if( status == AdvanceStatus::OVER )
+    {
+        *this = end();
+        return *this;
+    }
+    currentIteration.setStepStatus( StepStatus::DuringStep );
+
+    auto iteration = iterations.at( m_currentIteration );
+    if( *iteration.m_closed != Iteration::CloseStatus::ClosedInBackend )
+    {
+        iteration.open();
     }
     return *this;
 }

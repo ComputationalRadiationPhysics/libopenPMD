@@ -984,6 +984,11 @@ void
 HDF5IOHandlerImpl::writeAttribute(Writable* writable,
                                   Parameter< Operation::WRITE_ATT > const& parameters)
 {
+    if( parameters.changesOverSteps )
+    {
+        // cannot do this
+        return;
+    }
     if( m_handler->m_backendAccess == Access::READ_ONLY )
         throw std::runtime_error("[HDF5] Writing an attribute in a file opened as read only is not possible.");
 

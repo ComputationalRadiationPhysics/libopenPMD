@@ -755,6 +755,7 @@ SeriesImpl::flushGorVBased( iterations_iterator begin, iterations_iterator end )
                 }
                 continue;
             }
+            series.m_currentlyActiveIterations.emplace( it->first );
             if( !it->second.written() )
             {
                 it->second.parent() = getWritable( &series.iterations );
@@ -968,7 +969,7 @@ void SeriesImpl::readOneIterationFileBased( std::string const & filePath )
     series.iterations.readAttributes(ReadMode::OverrideExisting );
 }
 
-void
+auxiliary::Option< std::deque< uint64_t > >
 SeriesImpl::readGorVBased( bool do_init )
 {
     auto & series = get();
@@ -1079,6 +1080,51 @@ SeriesImpl::readGorVBased( bool do_init )
         }
     };
 
+    auto currentSteps =
+        [ &series ]() -> auxiliary::Option< std::vector< uint64_t > >
+    {
+        using vec_t = std::vector< uint64_t >;
+        /*
+         * In variable-based iteration encoding, iterations have no distinct
+         * group within `series.iterations`, meaning that the `snapshot`
+         * attribute is not found at `/data/0/snapshot`, but at
+         * `/data/snapshot`. This makes it possible to retrieve it from
+         * `series.iterations`.
+         */
+        if( series.iterations.containsAttribute( "snapshot" ) )
+        {
+            auto const & attribute =
+                series.iterations.getAttribute( "snapshot" );
+            switch( attribute.dtype )
+            {
+            case Datatype::ULONGLONG:
+                return vec_t{ attribute.get< unsigned long long >() };
+            case Datatype::ULONG:
+                return vec_t{ attribute.get< unsigned long >() };
+            case Datatype::VEC_ULONGLONG: {
+                auto const & vec =
+                    attribute.get< std::vector< unsigned long long > >();
+                return vec_t{ vec.begin(), vec.end() };
+            }
+            case Datatype::VEC_ULONG: {
+                auto const & vec =
+                    attribute.get< std::vector< unsigned long > >();
+                return vec_t{ vec.begin(), vec.end() };
+            }
+            default: {
+                std::stringstream s;
+                s << "Unexpected datatype for '/data/snapshot': "
+                  << attribute.dtype << std::endl;
+                throw std::runtime_error( s.str() );
+            }
+            }
+        }
+        else
+        {
+            return auxiliary::Option< std::vector< uint64_t > >{};
+        }
+    }();
+
     switch( iterationEncoding() )
     {
     case IterationEncoding::groupBased:
@@ -1086,25 +1132,36 @@ SeriesImpl::readGorVBased( bool do_init )
      * Sic! This happens when a file-based Series is opened in group-based mode.
      */
     case IterationEncoding::fileBased:
+    {
         for( auto const & it : *pList.paths )
         {
             uint64_t index = std::stoull( it );
             readSingleIteration( index, it, true );
         }
-        break;
-    case IterationEncoding::variableBased:
-    {
-        uint64_t index = 0;
-        if( series.iterations.containsAttribute( "snapshot" ) )
+        if( currentSteps.has_value() )
         {
-            index = series.iterations
-                .getAttribute( "snapshot" )
-                .get< uint64_t >();
+            auto const & vec = currentSteps.get();
+            return std::deque< uint64_t >{ vec.begin(), vec.end() };
         }
-        readSingleIteration( index, "", false );
-        break;
+        else
+        {
+            return auxiliary::Option< std::deque< uint64_t > >();
+        }
+    }
+    case IterationEncoding::variableBased: {
+        std::deque< uint64_t > res = { 0 };
+        if( currentSteps.has_value() && !currentSteps.get().empty() )
+        {
+            res = { currentSteps.get().begin(), currentSteps.get().end() };
+        }
+        for( auto it : res )
+        {
+            readSingleIteration( it, "", false );
+        }
+        return res;
     }
     }
+    throw std::runtime_error( "Unreachable!" );
 }
 
 void
@@ -1256,7 +1313,13 @@ SeriesImpl::advance(
          * opening an iteration's file by beginning a step on it.
          * So, return now.
          */
+        *iteration.m_closed = Iteration::CloseStatus::ClosedInBackend;
         return AdvanceStatus::OK;
+    }
+
+    if( mode == AdvanceMode::ENDSTEP )
+    {
+        flushStep( /* doFlush = */ false );
     }
 
     Parameter< Operation::ADVANCE > param;
@@ -1328,6 +1391,28 @@ SeriesImpl::advance(
     IOHandler()->m_flushLevel = FlushLevel::InternalFlush;
 
     return *param.status;
+}
+
+void SeriesImpl::flushStep( bool doFlush )
+{
+    auto & series = get();
+    if( !series.m_currentlyActiveIterations.empty() )
+    {
+        // @todo I don't think this understands changing extents over time
+        // Not strictly necessary yet but it might come biting us later
+        Parameter< Operation::WRITE_ATT > wAttr;
+        wAttr.changesOverSteps = true;
+        wAttr.name = "snapshot";
+        wAttr.resource = std::vector< unsigned long long >{
+            series.m_currentlyActiveIterations.begin(),
+            series.m_currentlyActiveIterations.end() };
+        wAttr.dtype = Datatype::VEC_ULONGLONG;
+        IOHandler()->enqueue( IOTask( &series.iterations, wAttr ) );
+        if( doFlush )
+        {
+            IOHandler()->flush();
+        }
+    }
 }
 
 void
@@ -1426,10 +1511,12 @@ SeriesInternal::~SeriesInternal()
     // we must not throw in a destructor
     try
     {
+        // give WriteIterations the chance to flush first
+        m_writeIterations = auxiliary::Option< WriteIterations >();
         /*
-         * Scenario: A user calls `Series::flush()` but does not check for thrown
-         * exceptions. The exception will propagate further up, usually thereby
-         * popping the stack frame that holds the `Series` object.
+         * Scenario: A user calls `Series::flush()` but does not check for
+         * thrown exceptions. The exception will propagate further up, usually
+         * thereby popping the stack frame that holds the `Series` object.
          * `Series::~Series()` will run. This check avoids that the `Series` is
          * needlessly flushed a second time. Otherwise, error messages can get
          * very confusing.
@@ -1437,6 +1524,7 @@ SeriesInternal::~SeriesInternal()
         if( get().m_lastFlushSuccessful )
         {
             flush();
+            flushStep( /* doFlush = */ true );
         }
     }
     catch( std::exception const & ex )

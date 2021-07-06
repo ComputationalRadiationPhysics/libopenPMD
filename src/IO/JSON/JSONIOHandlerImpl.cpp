@@ -914,6 +914,11 @@ namespace openPMD
         Parameter< Operation::WRITE_ATT > const & parameter
     )
     {
+        if( parameter.changesOverSteps )
+        {
+            // cannot do this
+            return;
+        }
         if(m_handler->m_backendAccess == Access::READ_ONLY )
         {
             throw std::runtime_error( "[JSON] Creating a dataset in a file opened as read only is not possible." );
