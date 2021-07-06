@@ -556,43 +556,43 @@ auto Iteration::beginStep() -> BeginStepStatus
     internal::AttributableData * file = nullptr;
     switch( series.iterationEncoding() )
     {
-        case IE::fileBased:
-            file = m_attributableData.get();
-            break;
-        case IE::groupBased:
-        case IE::variableBased:
-            file = &series;
-            break;
-        }
+    case IE::fileBased:
+        file = m_attributableData.get();
+        break;
+    case IE::groupBased:
+    case IE::variableBased:
+        file = &series;
+        break;
+    }
 
-        AdvanceStatus status = series.advance(
-            AdvanceMode::BEGINSTEP, *file, series.indexOf( *this ), *this );
-        switch( status )
-        {
-        case AdvanceStatus::OVER:
-            res.stepStatus = status;
-            return res;
-        case AdvanceStatus::OK:
-        case AdvanceStatus::RANDOMACCESS:
-            break;
-        }
+    AdvanceStatus status = series.advance(
+        AdvanceMode::BEGINSTEP, *file, series.indexOf( *this ), *this );
+    switch( status )
+    {
+    case AdvanceStatus::OVER:
+        res.stepStatus = status;
+        return res;
+    case AdvanceStatus::OK:
+    case AdvanceStatus::RANDOMACCESS:
+        break;
+    }
 
-        // re-read -> new datasets might be available
-        if( ( series.iterationEncoding() == IE::groupBased ||
-              series.iterationEncoding() == IE::variableBased ) &&
-            ( this->IOHandler()->m_frontendAccess == Access::READ_ONLY ||
-              this->IOHandler()->m_frontendAccess == Access::READ_WRITE ) )
-        {
-            bool previous = series.iterations.written();
-            series.iterations.written() = false;
-            auto oldType = this->IOHandler()->m_frontendAccess;
-            auto newType =
-                const_cast< Access * >( &this->IOHandler()->m_frontendAccess );
-            *newType = Access::READ_WRITE;
-            res.iterationsInOpenedStep = series.readGorVBased( false );
-            *newType = oldType;
-            series.iterations.written() = previous;
-        }
+    // re-read -> new datasets might be available
+    if( ( series.iterationEncoding() == IE::groupBased ||
+            series.iterationEncoding() == IE::variableBased ) &&
+        ( this->IOHandler()->m_frontendAccess == Access::READ_ONLY ||
+            this->IOHandler()->m_frontendAccess == Access::READ_WRITE ) )
+    {
+        bool previous = series.iterations.written();
+        series.iterations.written() = false;
+        auto oldType = this->IOHandler()->m_frontendAccess;
+        auto newType =
+            const_cast< Access * >( &this->IOHandler()->m_frontendAccess );
+        *newType = Access::READ_WRITE;
+        res.iterationsInOpenedStep = series.readGorVBased( false );
+        *newType = oldType;
+        series.iterations.written() = previous;
+    }
 
     res.stepStatus = status;
     return res;

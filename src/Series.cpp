@@ -1084,6 +1084,13 @@ SeriesImpl::readGorVBased( bool do_init )
         [ &series ]() -> auxiliary::Option< std::vector< uint64_t > >
     {
         using vec_t = std::vector< uint64_t >;
+        /*
+         * In variable-based iteration encoding, iterations have no distinct
+         * group within `series.iterations`, meaning that the `snapshot`
+         * attribute is not found at `/data/0/snapshot`, but at
+         * `/data/snapshot`. This makes it possible to retrieve it from
+         * `series.iterations`.
+         */
         if( series.iterations.containsAttribute( "snapshot" ) )
         {
             auto const & attribute =

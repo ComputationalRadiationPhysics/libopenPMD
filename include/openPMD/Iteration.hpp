@@ -256,6 +256,10 @@ private:
             auxiliary::Option< std::deque< uint64_t > >;
 
         AdvanceStatus stepStatus{};
+        /*
+         * If the iteration attribute `snapshot` is present, the value of that
+         * attribute. Otherwise empty.
+         */
         AvailableIterations_t iterationsInOpenedStep;
 
         inline operator AdvanceStatus() const

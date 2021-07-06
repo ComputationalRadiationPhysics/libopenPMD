@@ -338,6 +338,11 @@ public:
    * The attribute should be of datatype parameters.dtype.
    * Any existing attribute with the same name should be overwritten. If possible, only the value should be changed if the datatype stays the same.
    * The attribute should be written to physical storage after the operation completes successfully.
+   * If the parameter changesOverSteps is true, then the attribute must be able
+   * to hold different values across IO steps. If the backend does not support
+   * IO steps in such a way, the attribute should not be written.
+   * (IO steps are an optional backend feature and the frontend must implement
+   * fallback measures in such a case)
    * All datatypes of Datatype should be supported in a type-safe way.
    */
   virtual void writeAttribute(Writable*, Parameter< Operation::WRITE_ATT > const&) = 0;

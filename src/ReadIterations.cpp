@@ -83,7 +83,14 @@ SeriesIterator::SeriesIterator( Series series )
             Iteration::BeginStepStatus::AvailableIterations_t
                 availableIterations;
             std::tie( status, availableIterations ) = it->second.beginStep();
-            if( availableIterations.has_value() )
+            /*
+             * In random-access mode, do not use the information read in the
+             * `snapshot` attribute, instead simply go through iterations
+             * one by one in ascending order (fallback implementation in the
+             * second if branch).
+             */
+            if( availableIterations.has_value() &&
+                status != AdvanceStatus::RANDOMACCESS )
             {
                 m_iterationsInCurrentStep = availableIterations.get();
                 if( !m_iterationsInCurrentStep.empty() )
@@ -173,8 +180,11 @@ SeriesIterator & SeriesIterator::operator++()
             series.iterations[ m_currentIteration ].beginStep();
             return *this;
         }
-        throw std::runtime_error( "Control flow error!" );
+        throw std::runtime_error( "Unreachable!" );
     }
+
+    // The currently active iterations have been exhausted.
+    // Now see if there are further iterations to be found.
 
     if( series.iterationEncoding() == IterationEncoding::fileBased )
     {
@@ -193,8 +203,9 @@ SeriesIterator & SeriesIterator::operator++()
     AdvanceStatus status;
     Iteration::BeginStepStatus::AvailableIterations_t availableIterations;
     std::tie( status, availableIterations ) = currentIteration.beginStep();
-    if( availableIterations.has_value()
-        && status != AdvanceStatus::RANDOMACCESS )
+
+    if( availableIterations.has_value() &&
+        status != AdvanceStatus::RANDOMACCESS )
     {
         m_iterationsInCurrentStep = availableIterations.get();
     }

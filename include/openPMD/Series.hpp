@@ -387,6 +387,8 @@ OPENPMD_private:
      * Note on re-parsing of a Series:
      * If init == false, the parsing process will seek for new
      * Iterations/Records/Record Components etc.
+     * If series.iterations contains the attribute `snapshot`, returns its
+     * value (will only be true in variable-based iteration encoding).
      */
     auxiliary::Option< std::deque< uint64_t > >
     readGorVBased( bool init = true );
