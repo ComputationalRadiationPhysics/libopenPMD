@@ -1511,10 +1511,12 @@ SeriesInternal::~SeriesInternal()
     // we must not throw in a destructor
     try
     {
+        // give WriteIterations the chance to flush first
+        m_writeIterations = auxiliary::Option< WriteIterations >();
         /*
-         * Scenario: A user calls `Series::flush()` but does not check for thrown
-         * exceptions. The exception will propagate further up, usually thereby
-         * popping the stack frame that holds the `Series` object.
+         * Scenario: A user calls `Series::flush()` but does not check for
+         * thrown exceptions. The exception will propagate further up, usually
+         * thereby popping the stack frame that holds the `Series` object.
          * `Series::~Series()` will run. This check avoids that the `Series` is
          * needlessly flushed a second time. Otherwise, error messages can get
          * very confusing.

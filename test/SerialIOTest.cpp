@@ -4302,3 +4302,75 @@ TEST_CASE( "deferred_parsing", "[serial]" )
         deferred_parsing( t );
     }
 }
+
+void chaotic_stream( std::string filename, bool variableBased )
+{
+    std::vector< uint64_t > iterations{ 5, 9, 1, 3, 4, 6, 7, 8, 2, 0 };
+    std::string jsonConfig = R"(
+{
+    "adios2": {
+        "schema": 20210209,
+        "engine": {
+            "type": "bp4",
+            "usesteps": true
+        }
+    }
+})";
+
+    bool weirdOrderWhenReading{};
+
+    {
+        Series series( filename, Access::CREATE, jsonConfig );
+        /*
+         * When using ADIOS2 steps, iterations are read not by logical order
+         * (iteration index), but by order of writing.
+         */
+        weirdOrderWhenReading = series.backend() == "ADIOS2" &&
+            series.iterationEncoding() != IterationEncoding::fileBased;
+        if( variableBased )
+        {
+            if( series.backend() != "ADIOS2" )
+            {
+                return;
+            }
+            series.setIterationEncoding( IterationEncoding::variableBased );
+        }
+        for( auto currentIteration : iterations )
+        {
+            auto dataset =
+                series.writeIterations()[ currentIteration ]
+                    .meshes[ "iterationOrder" ][ MeshRecordComponent::SCALAR ];
+            dataset.resetDataset( { determineDatatype< uint64_t >(), { 10 } } );
+            dataset.storeChunk( iterations, { 0 }, { 10 } );
+            // series.writeIterations()[ currentIteration ].close();
+        }
+    }
+
+    {
+        Series series( filename, Access::READ_ONLY );
+        size_t index = 0;
+        for( auto iteration : series.readIterations() )
+        {
+            if( weirdOrderWhenReading )
+            {
+                REQUIRE( iteration.iterationIndex == iterations[ index ] );
+            }
+            else
+            {
+                REQUIRE( iteration.iterationIndex == index );
+            }
+            ++index;
+        }
+        REQUIRE( index == iterations.size() );
+    }
+}
+
+TEST_CASE( "chaotic_stream", "[serial]" )
+{
+    for( auto const & t : testedFileExtensions() )
+    {
+        chaotic_stream( "../samples/chaotic_stream_filebased_%T." + t, false );
+        chaotic_stream( "../samples/chaotic_stream." + t, false );
+        chaotic_stream( "../samples/chaotic_stream_vbased." + t, true );
+    }
+}
