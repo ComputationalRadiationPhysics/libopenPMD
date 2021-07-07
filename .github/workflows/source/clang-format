@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#
+# Copyright 2016-2021 Axel Huebl
+#
+# License: LGPLv3+
+
+# search recursive inside a folder if a file contains tabs
+#
+# @result 0 if no files are found, else 1
+#
+
+__awkscript() {
+  cat << EOF
+BEGIN {
+  modified = 0;
+} 
+
+{
+  if (\$1 == "M") {
+    modified = 1;
+  }
+}
+END {
+  print modified;
+}
+EOF
+}
+awkscript="$(__awkscript)"
+
+./format.sh
+if [[ $? -ne 0 ]]
+then
+  echo "# Unable to format the source tree"
+  exit 1
+fi
+
+modified="$(git status --short | awk "$awkscript")"
+if [[ "$modified" -eq 1 ]]
+then
+  cat << EOF
+# Code must be formatted by clang-format.
+# Use the format.sh script contained in the source tree.
+# Bad files:
+EOF
+  git status --short \
+    | awk '{if ($1 == "M"){ printf "# %s\n", $2 }}'
+  exit 1
+fi
+
+exit 0
