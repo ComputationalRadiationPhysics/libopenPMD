@@ -18,11 +18,16 @@
  * and the GNU Lesser General Public License along with openPMD-api.
  * If not, see <http://www.gnu.org/licenses/>.
  */
+#include "openPMD/auxiliary/Filesystem.hpp"
+#include "openPMD/Error.hpp"
+
 #include <algorithm>
 #include <complex>
-#include <tuple>
 #include <string>
+#include <tuple>
 
+namespace openPMD
+{
 
 void
 CommonADIOS1IOHandlerImpl::close(int64_t fd)
@@ -392,6 +397,15 @@ CommonADIOS1IOHandlerImpl::createFile(Writable* writable,
         std::string name = m_handler->directory + parameters.name;
         if( !auxiliary::ends_with(name, ".bp") )
             name += ".bp";
+
+        if( m_handler->m_backendAccess == Access::APPEND &&
+            auxiliary::file_exists( name ) )
+        {
+            throw error::OperationUnsupportedInBackend(
+                "ADIOS1",
+                "Appending to existing file on disk (use Access::CREATE to "
+                "overwrite)" );
+        }
 
         writable->written = true;
         writable->abstractFilePosition = std::make_shared< ADIOS1FilePosition >("/");
@@ -1653,3 +1667,5 @@ CommonADIOS1IOHandlerImpl::listAttributes(Writable* writable,
         *parameters.attributes = std::vector< std::string >(attributes.begin(), attributes.end());
     }
 }
+
+} // namespace openPMD

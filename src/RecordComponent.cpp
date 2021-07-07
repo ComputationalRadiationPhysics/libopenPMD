@@ -186,14 +186,18 @@ RecordComponent::flush(std::string const& name)
         *this->m_name = name;
         return;
     }
-    if(IOHandler()->m_frontendAccess == Access::READ_ONLY )
+    switch( IOHandler()->m_frontendAccess )
     {
+    case Access::READ_ONLY:
         while( !m_chunks->empty() )
         {
             IOHandler()->enqueue(m_chunks->front());
             m_chunks->pop();
         }
-    } else
+        break;
+    case Access::READ_WRITE:
+    case Access::CREATE:
+    case Access::APPEND:
     {
         if( !written() )
         {
@@ -253,6 +257,8 @@ RecordComponent::flush(std::string const& name)
         }
 
         flushAttributes();
+        break;
+    }
     }
 }
 

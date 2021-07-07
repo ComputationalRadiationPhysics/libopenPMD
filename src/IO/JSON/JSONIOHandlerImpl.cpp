@@ -115,7 +115,7 @@ namespace openPMD
                 file.invalidate( );
             }
 
-            std::string const dir( m_handler->directory );
+            std::string const & dir( m_handler->directory );
             if( !auxiliary::directory_exists( dir ) )
             {
                 auto success = auxiliary::create_directories( dir );
@@ -133,6 +133,15 @@ namespace openPMD
             this->m_jsonVals[shared_name] =
                 std::make_shared< nlohmann::json >( );
 
+            // start off with already written contents if available
+            // @todo Do the same in READ_WRITE mode in ::openFile()?
+            auto const & fullName = fullPath(name);
+            if( m_handler->m_backendAccess == Access::APPEND
+                && auxiliary::file_exists(fullName))
+            {
+                std::ifstream handle(fullName);
+                handle >> *this->m_jsonVals[shared_name];
+            }
 
             writable->written = true;
             writable->abstractFilePosition =
@@ -1099,6 +1108,14 @@ namespace openPMD
         {
             case Access::CREATE:
             case Access::READ_WRITE:
+            case Access::APPEND:
+                /*
+                 * Always truncate when writing, we alway write entire JSON
+                 * datasets, never partial ones.
+                 * Within the JSON backend, APPEND and READ_WRITE mode are
+                 * equivalent, but the openPMD frontend exposes no reading
+                 * functionality in APPEND mode.
+                 */
                 fs->open(
                     path,
                     std::ios_base::out | std::ios_base::trunc
