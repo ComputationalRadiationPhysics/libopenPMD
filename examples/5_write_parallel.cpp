@@ -36,7 +36,7 @@ int main( int argc, char * argv[] )
     int mpi_size;
     int mpi_rank;
 
-    MPI_Comm_size   ( MPI_COMM_WORLD, &mpi_size );
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_size );
     MPI_Comm_rank( MPI_COMM_WORLD, &mpi_rank );
 
     /* note: this scope is intentional to destruct the openPMD::Series object
