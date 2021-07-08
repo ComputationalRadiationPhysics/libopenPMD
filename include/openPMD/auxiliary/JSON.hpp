@@ -90,6 +90,9 @@ namespace auxiliary
         /**
          * @brief Declare all keys of the current object read.
          *
+         * Rationale: This class does not (yet) trace array types (or anything
+         * contained in an array). Use this call to explicitly declare
+         * an array as read.
          */
         void
         declareFullyRead();
