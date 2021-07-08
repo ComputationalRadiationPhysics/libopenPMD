@@ -22,9 +22,8 @@
 
 #include <array>
 #include <ctime>
-#include <string>
 #include <sstream>
-
+#include <string>
 
 namespace openPMD
 {
@@ -37,9 +36,10 @@ namespace auxiliary
 
         time_t rawtime;
         time( &rawtime );
-        struct tm* timeinfo;
+        struct tm * timeinfo;
         // https://github.com/openPMD/openPMD-api/pull/657#issuecomment-574424885
-        timeinfo = localtime( &rawtime );  // lgtm[cpp/potentially-dangerous-function]
+        timeinfo =
+            localtime( &rawtime ); // lgtm[cpp/potentially-dangerous-function]
 
         strftime( buffer.data(), maxLen, format.c_str(), timeinfo );
 

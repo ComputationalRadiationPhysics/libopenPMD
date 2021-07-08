@@ -37,77 +37,78 @@ namespace openPMD
 
 namespace detail
 {
-// std::void_t is C++17
-template< typename >
-using void_t = void;
+    // std::void_t is C++17
+    template< typename >
+    using void_t = void;
 
-/*
- * Check whether class T has a member "errorMsg" convertible
- * to type std::string.
- * Used to give helpful compile-time error messages with static_assert
- * down in CallUndefinedDatatype.
- */
-template< typename T, typename = void >
-struct HasErrorMessageMember
-{
-    static constexpr bool value = false;
-};
-
-template< typename T >
-struct HasErrorMessageMember<
-    T,
-    void_t< decltype( std::string( std::declval< T >().errorMsg ) ) > >
-{
-    static constexpr bool value = true;
-};
-
-/**
- * Purpose of this struct is to detect at compile time whether
- * Action::template operator()\<0\>() exists. If yes, call
- * Action::template operator()\<n\>() with the passed arguments.
- * If not, throw an error.
- *
- * @tparam n As in switchType().
- * @tparam ReturnType As in switchType().
- * @tparam Action As in switchType().
- * @tparam Placeholder For SFINAE, set to void.
- * @tparam Args As in switchType().
- */
-template<
-    int n,
-    typename ReturnType,
-    typename Action,
-    typename Placeholder,
-    typename... Args >
-struct CallUndefinedDatatype
-{
-    static ReturnType call( Action action, Args &&... )
+    /*
+     * Check whether class T has a member "errorMsg" convertible
+     * to type std::string.
+     * Used to give helpful compile-time error messages with static_assert
+     * down in CallUndefinedDatatype.
+     */
+    template< typename T, typename = void >
+    struct HasErrorMessageMember
     {
-        static_assert(
-            HasErrorMessageMember< Action >::value,
-            "[switchType] Action needs either an errorMsg member of type "
-            "std::string or operator()<unsigned>() overloads." );
-        throw std::runtime_error(
-            "[" + std::string( action.errorMsg ) + "] Unknown Datatype." );
-    }
-};
+        static constexpr bool value = false;
+    };
 
-template< int n, typename ReturnType, typename Action, typename... Args >
-struct CallUndefinedDatatype<
-    n,
-    ReturnType,
-    Action,
-    // Enable this, if no error message member is found.
-    // action.template operator()<n>() will be called instead
-    typename std::enable_if< !HasErrorMessageMember< Action >::value >::type,
-    Args... >
-{
-    static ReturnType call( Action action, Args &&... args )
+    template< typename T >
+    struct HasErrorMessageMember<
+        T,
+        void_t< decltype( std::string( std::declval< T >().errorMsg ) ) > >
     {
-        return action.OPENPMD_TEMPLATE_OPERATOR()< n >(
-            std::forward< Args >( args )... );
-    }
-};
+        static constexpr bool value = true;
+    };
+
+    /**
+     * Purpose of this struct is to detect at compile time whether
+     * Action::template operator()\<0\>() exists. If yes, call
+     * Action::template operator()\<n\>() with the passed arguments.
+     * If not, throw an error.
+     *
+     * @tparam n As in switchType().
+     * @tparam ReturnType As in switchType().
+     * @tparam Action As in switchType().
+     * @tparam Placeholder For SFINAE, set to void.
+     * @tparam Args As in switchType().
+     */
+    template<
+        int n,
+        typename ReturnType,
+        typename Action,
+        typename Placeholder,
+        typename... Args >
+    struct CallUndefinedDatatype
+    {
+        static ReturnType call( Action action, Args &&... )
+        {
+            static_assert(
+                HasErrorMessageMember< Action >::value,
+                "[switchType] Action needs either an errorMsg member of type "
+                "std::string or operator()<unsigned>() overloads." );
+            throw std::runtime_error(
+                "[" + std::string( action.errorMsg ) + "] Unknown Datatype." );
+        }
+    };
+
+    template< int n, typename ReturnType, typename Action, typename... Args >
+    struct CallUndefinedDatatype<
+        n,
+        ReturnType,
+        Action,
+        // Enable this, if no error message member is found.
+        // action.template operator()<n>() will be called instead
+        typename std::enable_if<
+            !HasErrorMessageMember< Action >::value >::type,
+        Args... >
+    {
+        static ReturnType call( Action action, Args &&... args )
+        {
+            return action.OPENPMD_TEMPLATE_OPERATOR()< n >(
+                std::forward< Args >( args )... );
+        }
+    };
 }
 
 /**

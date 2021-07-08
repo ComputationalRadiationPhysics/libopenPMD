@@ -20,7 +20,6 @@
  */
 #pragma once
 
-
 namespace openPMD
 {
 class AbstractFilePosition

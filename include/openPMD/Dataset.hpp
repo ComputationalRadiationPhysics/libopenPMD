@@ -23,10 +23,9 @@
 #include "openPMD/Datatype.hpp"
 
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <vector>
-#include <string>
-
 
 namespace openPMD
 {
@@ -38,7 +37,7 @@ class Dataset
     friend class RecordComponent;
 
 public:
-    Dataset(Datatype, Extent, std::string options = "{}");
+    Dataset( Datatype, Extent, std::string options = "{}" );
 
     /**
      * @brief Constructor that sets the datatype to undefined.
@@ -48,10 +47,10 @@ public:
      */
     Dataset( Extent );
 
-    Dataset& extend(Extent newExtent);
-    Dataset& setChunkSize(Extent const&);
-    Dataset& setCompression(std::string const&, uint8_t const);
-    Dataset& setCustomTransform(std::string const&);
+    Dataset & extend( Extent newExtent );
+    Dataset & setChunkSize( Extent const & );
+    Dataset & setCompression( std::string const &, uint8_t const );
+    Dataset & setCustomTransform( std::string const & );
 
     Extent extent;
     Datatype dtype;

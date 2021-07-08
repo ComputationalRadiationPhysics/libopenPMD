@@ -20,61 +20,56 @@
  */
 #include "openPMD/backend/MeshRecordComponent.hpp"
 
-
 namespace openPMD
 {
-MeshRecordComponent::MeshRecordComponent()
-        : RecordComponent()
+MeshRecordComponent::MeshRecordComponent() : RecordComponent()
 {
-    setPosition(std::vector< double >{0});
+    setPosition( std::vector< double >{ 0 } );
 }
 
-void
-MeshRecordComponent::read()
+void MeshRecordComponent::read()
 {
     using DT = Datatype;
     Parameter< Operation::READ_ATT > aRead;
 
     aRead.name = "position";
-    IOHandler()->enqueue(IOTask(this, aRead));
+    IOHandler()->enqueue( IOTask( this, aRead ) );
     IOHandler()->flush();
-    Attribute a = Attribute(*aRead.resource);
+    Attribute a = Attribute( *aRead.resource );
     if( *aRead.dtype == DT::VEC_FLOAT )
-        setPosition(a.get< std::vector< float > >());
+        setPosition( a.get< std::vector< float > >() );
     else if( *aRead.dtype == DT::FLOAT )
-        setPosition(std::vector< float >({a.get< float >()}));
+        setPosition( std::vector< float >( { a.get< float >() } ) );
     else if( *aRead.dtype == DT::VEC_DOUBLE )
-        setPosition(a.get< std::vector< double > >());
+        setPosition( a.get< std::vector< double > >() );
     else if( *aRead.dtype == DT::DOUBLE )
-        setPosition(std::vector< double >({a.get< double >()}));
+        setPosition( std::vector< double >( { a.get< double >() } ) );
     else if( *aRead.dtype == DT::VEC_LONG_DOUBLE )
-        setPosition(a.get< std::vector< long double > >());
+        setPosition( a.get< std::vector< long double > >() );
     else if( *aRead.dtype == DT::LONG_DOUBLE )
-        setPosition(std::vector< long double >({a.get< long double >()}));
+        setPosition( std::vector< long double >( { a.get< long double >() } ) );
     else
-        throw std::runtime_error( "Unexpected Attribute datatype for 'position'");
+        throw std::runtime_error(
+            "Unexpected Attribute datatype for 'position'" );
 
     readBase();
 }
 
 template< typename T >
-MeshRecordComponent&
-MeshRecordComponent::setPosition(std::vector< T > pos)
+MeshRecordComponent & MeshRecordComponent::setPosition( std::vector< T > pos )
 {
-    static_assert(std::is_floating_point< T >::value,
-                  "Type of attribute must be floating point");
+    static_assert(
+        std::is_floating_point< T >::value,
+        "Type of attribute must be floating point" );
 
-    setAttribute("position", pos);
+    setAttribute( "position", pos );
     return *this;
 }
 
-template
-MeshRecordComponent&
-MeshRecordComponent::setPosition(std::vector< float > pos);
-template
-MeshRecordComponent&
-MeshRecordComponent::setPosition(std::vector< double > pos);
-template
-MeshRecordComponent&
-MeshRecordComponent::setPosition(std::vector< long double > pos);
+template MeshRecordComponent &
+MeshRecordComponent::setPosition( std::vector< float > pos );
+template MeshRecordComponent &
+MeshRecordComponent::setPosition( std::vector< double > pos );
+template MeshRecordComponent &
+MeshRecordComponent::setPosition( std::vector< long double > pos );
 } // openPMD

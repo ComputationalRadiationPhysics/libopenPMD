@@ -21,10 +21,10 @@
 #include "openPMD/IO/IOTask.hpp"
 #include "openPMD/backend/Attributable.hpp"
 
-
 namespace openPMD
 {
-Writable*
-getWritable(AttributableImpl* a)
-{ return &a->writable(); }
+Writable * getWritable( AttributableImpl * a )
+{
+    return &a->writable();
+}
 } // openPMD

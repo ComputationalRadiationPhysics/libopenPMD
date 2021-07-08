@@ -28,35 +28,31 @@
 #include <string>
 #include <vector>
 
-
-std::map< std::string, bool >
-openPMD::getVariants( )
+std::map< std::string, bool > openPMD::getVariants()
 {
     return std::map< std::string, bool >{
-            {"mpi", bool(openPMD_HAVE_MPI)},
-            {"json", true},
-            {"hdf5", bool(openPMD_HAVE_HDF5)},
-            {"adios1", bool(openPMD_HAVE_ADIOS1)},
-            {"adios2", bool(openPMD_HAVE_ADIOS2)}
-    };
+        { "mpi", bool( openPMD_HAVE_MPI ) },
+        { "json", true },
+        { "hdf5", bool( openPMD_HAVE_HDF5 ) },
+        { "adios1", bool( openPMD_HAVE_ADIOS1 ) },
+        { "adios2", bool( openPMD_HAVE_ADIOS2 ) } };
 }
 
-std::vector< std::string >
-openPMD::getFileExtensions()
+std::vector< std::string > openPMD::getFileExtensions()
 {
     std::vector< std::string > fext;
-    fext.emplace_back("json");
+    fext.emplace_back( "json" );
 #if openPMD_HAVE_ADIOS1 || openPMD_HAVE_ADIOS2
-    fext.emplace_back("bp");
+    fext.emplace_back( "bp" );
 #endif
 #ifdef ADIOS2_HAVE_SST
-    fext.emplace_back("sst");
+    fext.emplace_back( "sst" );
 #endif
 #ifdef ADIOS2_HAVE_SSC
-    fext.emplace_back("ssc");
+    fext.emplace_back( "ssc" );
 #endif
 #if openPMD_HAVE_HDF5
-    fext.emplace_back("h5");
+    fext.emplace_back( "h5" );
 #endif
     return fext;
 }

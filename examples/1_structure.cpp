@@ -20,39 +20,44 @@
  */
 #include <openPMD/openPMD.hpp>
 
-
 using namespace openPMD;
 
 int main()
 {
-    /* The root of any openPMD output spans across all data for all iterations is a 'Series'.
+    /* The root of any openPMD output spans across all data for all iterations
+     * is a 'Series'.
      * Data is either in a single file or spread across multiple files. */
-    Series series = Series("../samples/1_structure.h5", Access::CREATE);
+    Series series = Series( "../samples/1_structure.h5", Access::CREATE );
 
-    /* Every element that structures your file (groups and datasets for example) can be annotated with attributes. */
-    series.setComment("This string will show up at the root ('/') of the output with key 'comment'.");
+    /* Every element that structures your file (groups and datasets for example)
+     * can be annotated with attributes. */
+    series.setComment(
+        "This string will show up at the root ('/') of the output with key "
+        "'comment'." );
 
-    /* Access to individual positions inside happens hierarchically, according to the openPMD standard.
-     * Creation of new elements happens on access inside the tree-like structure.
-     * Required attributes are initialized to reasonable defaults for every object. */
-    ParticleSpecies electrons = series.iterations[1].particles["electrons"];
+    /* Access to individual positions inside happens hierarchically, according
+     * to the openPMD standard. Creation of new elements happens on access
+     * inside the tree-like structure. Required attributes are initialized to
+     * reasonable defaults for every object. */
+    ParticleSpecies electrons = series.iterations[ 1 ].particles[ "electrons" ];
 
-    /* Data to be moved from memory to persistent storage is structured into Records,
-     * each holding an unbounded number of RecordComponents.
-     * If a Record only contains a single (scalar) component, it is treated slightly differently.
+    /* Data to be moved from memory to persistent storage is structured into
+     * Records, each holding an unbounded number of RecordComponents. If a
+     * Record only contains a single (scalar) component, it is treated slightly
+     * differently.
      * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#scalar-vector-and-tensor-records*/
-    Record          mass        = electrons["mass"];
-    RecordComponent mass_scalar = mass[RecordComponent::SCALAR];
+    Record mass = electrons[ "mass" ];
+    RecordComponent mass_scalar = mass[ RecordComponent::SCALAR ];
 
-    Dataset dataset = Dataset(Datatype::DOUBLE, Extent{1});
-    mass_scalar.resetDataset(dataset);
+    Dataset dataset = Dataset( Datatype::DOUBLE, Extent{ 1 } );
+    mass_scalar.resetDataset( dataset );
 
     /* Required Records and RecordComponents are created automatically.
      * Initialization has to be done explicitly by the user. */
-    electrons["position"]["x"].resetDataset(dataset);
-    electrons["position"]["x"].makeConstant(20.0);
-    electrons["positionOffset"]["x"].resetDataset(dataset);
-    electrons["positionOffset"]["x"].makeConstant(22.0);
+    electrons[ "position" ][ "x" ].resetDataset( dataset );
+    electrons[ "position" ][ "x" ].makeConstant( 20.0 );
+    electrons[ "positionOffset" ][ "x" ].resetDataset( dataset );
+    electrons[ "positionOffset" ][ "x" ].makeConstant( 22.0 );
 
     /* The files in 'series' are still open until the object is destroyed, on
      * which it cleanly flushes and closes all open file handles.

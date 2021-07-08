@@ -22,37 +22,36 @@
 
 #include "openPMD/IO/AbstractIOHandler.hpp"
 
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
 
 // expose private and protected members for invasive testing
 #ifndef OPENPMD_private
-#   define OPENPMD_private private
+#define OPENPMD_private private
 #endif
-
 
 namespace openPMD
 {
 namespace test
 {
-struct TestHelper;
+    struct TestHelper;
 } // namespace test
 class AbstractFilePosition;
 class AbstractIOHandler;
 struct ADIOS2FilePosition;
-template <typename FilePositionType>
+template< typename FilePositionType >
 class AbstractIOHandlerImplCommon;
-template<typename>
+template< typename >
 class Span;
 
 namespace internal
 {
-class AttributableData;
+    class AttributableData;
 }
 
-
-/** @brief Layer to mirror structure of logical data and persistent data in file.
+/** @brief Layer to mirror structure of logical data and persistent data in
+ * file.
  *
  * Hierarchy of objects (datasets, groups, attributes, ...) in openPMD is
  * managed in this class.
@@ -67,11 +66,7 @@ class Writable final
     friend class AttributableImpl;
     template< typename T_elem >
     friend class BaseRecord;
-    template<
-            typename T,
-            typename T_key,
-            typename T_container
-    >
+    template< typename T, typename T_key, typename T_container >
     friend class Container;
     friend class Iteration;
     friend class Mesh;
@@ -83,12 +78,12 @@ class Writable final
     friend class ADIOS2IOHandlerImpl;
     friend class HDF5IOHandlerImpl;
     friend class ParallelHDF5IOHandlerImpl;
-    friend class AbstractIOHandlerImplCommon<ADIOS2FilePosition>;
+    friend class AbstractIOHandlerImplCommon< ADIOS2FilePosition >;
     friend class JSONIOHandlerImpl;
     friend struct test::TestHelper;
-    friend std::string concrete_h5_file_position(Writable*);
-    friend std::string concrete_bp1_file_position(Writable*);
-    template<typename>
+    friend std::string concrete_h5_file_position( Writable * );
+    friend std::string concrete_bp1_file_position( Writable * );
+    template< typename >
     friend class Span;
 
 private:
@@ -111,18 +106,18 @@ public:
      */
     void seriesFlush();
 
-// clang-format off
+    // clang-format off
 OPENPMD_private:
-// clang-format on
-    void seriesFlush( FlushLevel );
+        // clang-format on
+        void seriesFlush( FlushLevel );
     /*
      * These members need to be shared pointers since distinct instances of
      * Writable may share them.
      */
     std::shared_ptr< AbstractFilePosition > abstractFilePosition;
     std::shared_ptr< AbstractIOHandler > IOHandler;
-    internal::AttributableData* attributable;
-    Writable* parent;
+    internal::AttributableData * attributable;
+    Writable * parent;
     bool dirty;
     /**
      * If parent is not null, then this is a vector of keys such that:

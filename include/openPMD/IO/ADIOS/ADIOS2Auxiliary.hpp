@@ -23,16 +23,16 @@
 
 #include "openPMD/config.hpp"
 #if openPMD_HAVE_ADIOS2
-# include "openPMD/Dataset.hpp"
-# include "openPMD/Datatype.hpp"
-# include "openPMD/DatatypeHelpers.hpp"
+#include "openPMD/Dataset.hpp"
+#include "openPMD/Datatype.hpp"
+#include "openPMD/DatatypeHelpers.hpp"
 
-# include <adios2.h>
+#include <adios2.h>
 
-# include <complex>
-# include <stdexcept>
-# include <utility>
-# include <vector>
+#include <complex>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace openPMD
 {
@@ -43,33 +43,37 @@ namespace detail
     // we represent booleans as unsigned chars
     using bool_representation = unsigned char;
 
-    template < typename T > struct ToDatatypeHelper
+    template< typename T >
+    struct ToDatatypeHelper
     {
-        static std::string type( );
+        static std::string type();
     };
 
-    template < typename T > struct ToDatatypeHelper< std::vector< T > >
+    template< typename T >
+    struct ToDatatypeHelper< std::vector< T > >
     {
-        static std::string type( );
+        static std::string type();
     };
 
-    template < typename T, size_t n >
+    template< typename T, size_t n >
     struct ToDatatypeHelper< std::array< T, n > >
     {
-        static std::string type( );
+        static std::string type();
     };
 
-    template <> struct ToDatatypeHelper< bool >
+    template<>
+    struct ToDatatypeHelper< bool >
     {
-        static std::string type( );
+        static std::string type();
     };
 
     struct ToDatatype
     {
-        template < typename T > std::string operator( )( );
+        template< typename T >
+        std::string operator()();
 
-
-        template < int n > std::string operator( )( );
+        template< int n >
+        std::string operator()();
     };
 
     /**
@@ -88,14 +92,13 @@ namespace detail
     struct AttributeInfo
     {
         template< typename T >
-        Extent
-        operator()(
+        Extent operator()(
             adios2::IO &,
             std::string const & attributeName,
             VariableOrAttribute );
 
-        template < int n, typename... Params >
-        Extent operator( )( Params &&... );
+        template< int n, typename... Params >
+        Extent operator()( Params &&... );
     };
 
     /**
@@ -107,8 +110,7 @@ namespace detail
      * @return The openPMD datatype corresponding to the type of the attribute.
      *         UNDEFINED if attribute is not found.
      */
-    Datatype
-    attributeInfo(
+    Datatype attributeInfo(
         adios2::IO & IO,
         std::string const & attributeName,
         bool verbose,

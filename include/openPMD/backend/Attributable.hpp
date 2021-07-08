@@ -21,22 +21,21 @@
 #pragma once
 
 #include "openPMD/IO/AbstractIOHandler.hpp"
+#include "openPMD/auxiliary/OutOfRangeMsg.hpp"
 #include "openPMD/backend/Attribute.hpp"
 #include "openPMD/backend/Writable.hpp"
-#include "openPMD/auxiliary/OutOfRangeMsg.hpp"
 
+#include <cstddef>
 #include <exception>
 #include <map>
 #include <memory>
-#include <vector>
 #include <string>
-#include <cstddef>
+#include <vector>
 
 // expose private and protected members for invasive testing
 #ifndef OPENPMD_protected
-#   define OPENPMD_protected protected
+#define OPENPMD_protected protected
 #endif
-
 
 namespace openPMD
 {
@@ -49,39 +48,42 @@ class AbstractFilePosition;
 class AttributableImpl;
 namespace internal
 {
-class SeriesInternal;
+    class SeriesInternal;
 }
 
 class no_such_attribute_error : public std::runtime_error
 {
 public:
-    no_such_attribute_error(std::string const& what_arg)
-            : std::runtime_error(what_arg)
-    { }
-    virtual ~no_such_attribute_error() { }
+    no_such_attribute_error( std::string const & what_arg )
+        : std::runtime_error( what_arg )
+    {
+    }
+    virtual ~no_such_attribute_error()
+    {
+    }
 };
 
 namespace internal
 {
-class AttributableData
-{
-    friend class openPMD::AttributableImpl;
+    class AttributableData
+    {
+        friend class openPMD::AttributableImpl;
 
-public:
-    AttributableData();
-    AttributableData( AttributableData const & ) = delete;
-    AttributableData( AttributableData && ) = delete;
-    virtual ~AttributableData() = default;
+    public:
+        AttributableData();
+        AttributableData( AttributableData const & ) = delete;
+        AttributableData( AttributableData && ) = delete;
+        virtual ~AttributableData() = default;
 
-    AttributableData & operator=( AttributableData const & ) = delete;
-    AttributableData & operator=( AttributableData && ) = delete;
+        AttributableData & operator=( AttributableData const & ) = delete;
+        AttributableData & operator=( AttributableData && ) = delete;
 
-    using A_MAP = std::map< std::string, Attribute >;
-    Writable m_writable;
+        using A_MAP = std::map< std::string, Attribute >;
+        Writable m_writable;
 
-private:
-    A_MAP m_attributes;
-};
+    private:
+        A_MAP m_attributes;
+    };
 }
 
 /** @brief Layer to manage storage of attributes associated with file objects.
@@ -93,14 +95,10 @@ class AttributableImpl
 {
     // @todo remove unnecessary friend (wew that sounds bitter)
     using A_MAP = std::map< std::string, Attribute >;
-    friend Writable* getWritable(AttributableImpl*);
+    friend Writable * getWritable( AttributableImpl * );
     template< typename T_elem >
     friend class BaseRecord;
-    template<
-        typename T,
-        typename T_key,
-        typename T_container
-    >
+    template< typename T, typename T_key, typename T_container >
     friend class Container;
     template< typename T >
     friend struct traits::GenerationPolicy;
@@ -140,25 +138,27 @@ public:
      * @{
      */
     template< typename T >
-    bool setAttribute(std::string const& key, T value);
-    bool setAttribute(std::string const& key, char const value[]);
+    bool setAttribute( std::string const & key, T value );
+    bool setAttribute( std::string const & key, char const value[] );
     /** @}
      */
 
     /** Retrieve value of Attribute stored with provided key.
      *
-     * @throw   no_such_attribute_error If no Attribute is currently stored with the provided key.
+     * @throw   no_such_attribute_error If no Attribute is currently stored with
+     * the provided key.
      * @param   key Key (i.e. name) of the Attribute to retrieve value for.
      * @return  Stored Attribute in Variant form.
      */
-    Attribute getAttribute(std::string const& key) const;
+    Attribute getAttribute( std::string const & key ) const;
 
     /** Remove Attribute of provided value both logically and physically.
      *
      * @param   key Key (i.e. name) of the Attribute to remove.
-     * @return  true if provided key was present and removal succeeded, false otherwise.
+     * @return  true if provided key was present and removal succeeded, false
+     * otherwise.
      */
-    bool deleteAttribute(std::string const& key);
+    bool deleteAttribute( std::string const & key );
 
     /** List all currently stored Attributes' keys.
      *
@@ -175,7 +175,7 @@ public:
      * @param   key Key (i.e. name) of the Attribute to find.
      * @return  true if provided key was present, false otherwise.
      */
-    bool containsAttribute(std::string const& key) const;
+    bool containsAttribute( std::string const & key ) const;
 
     /** Retrieve a user-supplied comment associated with the object.
      *
@@ -183,12 +183,13 @@ public:
      * @return  String containing the user-supplied comment.
      */
     std::string comment() const;
-    /** Populate Attribute corresponding to a comment with the user-supplied comment.
+    /** Populate Attribute corresponding to a comment with the user-supplied
+     * comment.
      *
      * @param   comment String value to be stored as a comment.
      * @return  Reference to modified Attributable.
      */
-    AttributableImpl& setComment(std::string const& comment);
+    AttributableImpl & setComment( std::string const & comment );
 
     /** Flush the corresponding Series object
      *
@@ -207,8 +208,8 @@ public:
      */
     struct MyPath
     {
-        std::string directory;       //! e.g., samples/git-samples/
-        std::string seriesName;      //! e.g., data%T
+        std::string directory; //! e.g., samples/git-samples/
+        std::string seriesName; //! e.g., data%T
         std::string seriesExtension; //! e.g., .bp, .h5, .json, ...
         /** A vector of openPMD object names
          *
@@ -230,15 +231,17 @@ public:
      */
     MyPath myPath() const;
 
-OPENPMD_protected:
+    OPENPMD_protected :
 
-    internal::SeriesInternal const & retrieveSeries() const;
+        internal::SeriesInternal const &
+        retrieveSeries() const;
     internal::SeriesInternal & retrieveSeries();
 
     void seriesFlush( FlushLevel );
 
     void flushAttributes();
-    enum ReadMode {
+    enum ReadMode
+    {
         /**
          * Don't read an attribute from the backend if it has been previously
          * read.
@@ -257,41 +260,55 @@ OPENPMD_protected:
     };
     void readAttributes( ReadMode );
 
-    /** Retrieve the value of a floating point Attribute of user-defined precision with ensured type-safety.
+    /** Retrieve the value of a floating point Attribute of user-defined
+     * precision with ensured type-safety.
      *
      * @note    Since the precision of certain Attributes is intentionally left
-     *          unspecified in the openPMD standard, this provides a mechanism to
-     *          retrieve those values without giving up type-safety.
-     * @see https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#conventions-throughout-these-documents
+     *          unspecified in the openPMD standard, this provides a mechanism
+     * to retrieve those values without giving up type-safety.
+     * @see
+     * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#conventions-throughout-these-documents
      * @note    If the supplied and stored floating point precision are not the
-     *          same, the value is cast to the desired precision unconditionally.
+     *          same, the value is cast to the desired precision
+     * unconditionally.
      *
-     * @throw   no_such_attribute_error If no Attribute is currently stored with the provided key.
-     * @tparam  T   Floating point type of user-defined precision to retrieve the value as.
-     * @param   key Key (i.e. name) of the floating-point Attribute to retrieve value for.
+     * @throw   no_such_attribute_error If no Attribute is currently stored with
+     * the provided key.
+     * @tparam  T   Floating point type of user-defined precision to retrieve
+     * the value as.
+     * @param   key Key (i.e. name) of the floating-point Attribute to retrieve
+     * value for.
      * @return  Value of stored Attribute as supplied floating point type.
      */
     template< typename T >
-    T readFloatingpoint(std::string const& key) const;
-    /** Retrieve a vector of values of a floating point Attributes of user-defined precision with ensured type-safety.
+    T readFloatingpoint( std::string const & key ) const;
+    /** Retrieve a vector of values of a floating point Attributes of
+     * user-defined precision with ensured type-safety.
      *
      * @note    Since the precision of certain Attributes is intentionally left
-     *          unspecified in the openPMD standard, this provides a mechanism to
-     *          retrieve those values without giving up type-safety.
-     * @see https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#conventions-throughout-these-documents
+     *          unspecified in the openPMD standard, this provides a mechanism
+     * to retrieve those values without giving up type-safety.
+     * @see
+     * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#conventions-throughout-these-documents
      * @note    If the supplied and stored floating point precision are not the
-     *          same, the values are cast to the desired precision unconditionally.
+     *          same, the values are cast to the desired precision
+     * unconditionally.
      *
-     * @throw   no_such_attribute_error If no Attribute is currently stored with the provided key.
-     * @tparam  T   Floating point type of user-defined precision to retrieve the values as.
-     * @param   key Key (i.e. name) of the floating-point Attribute to retrieve values for.
-     * @return  Vector of values of stored Attribute as supplied floating point type.
+     * @throw   no_such_attribute_error If no Attribute is currently stored with
+     * the provided key.
+     * @tparam  T   Floating point type of user-defined precision to retrieve
+     * the values as.
+     * @param   key Key (i.e. name) of the floating-point Attribute to retrieve
+     * values for.
+     * @return  Vector of values of stored Attribute as supplied floating point
+     * type.
      */
     template< typename T >
-    std::vector< T > readVectorFloatingpoint(std::string const& key) const;
+    std::vector< T > readVectorFloatingpoint( std::string const & key ) const;
 
     /* views into the resources held by m_writable
-     * purely for convenience so code that uses these does not have to go through m_writable-> */
+     * purely for convenience so code that uses these does not have to go
+     * through m_writable-> */
     AbstractIOHandler * IOHandler()
     {
         return m_attri->m_writable.IOHandler.get();
@@ -317,8 +334,7 @@ OPENPMD_protected:
         return m_attri->m_writable;
     }
 
-    inline
-    internal::AttributableData & get()
+    inline internal::AttributableData & get()
     {
         if( m_attri )
         {
@@ -331,8 +347,7 @@ OPENPMD_protected:
                 "Cannot use default-constructed Attributable." );
         }
     }
-    inline
-    internal::AttributableData const & get() const
+    inline internal::AttributableData const & get() const
     {
         if( m_attri )
         {
@@ -346,10 +361,22 @@ OPENPMD_protected:
         }
     }
 
-    bool dirty() const { return writable().dirty; }
-    bool& dirty() { return writable().dirty; }
-    bool written() const { return writable().written; }
-    bool& written() { return writable().written; }
+    bool dirty() const
+    {
+        return writable().dirty;
+    }
+    bool & dirty()
+    {
+        return writable().dirty;
+    }
+    bool written() const
+    {
+        return writable().written;
+    }
+    bool & written()
+    {
+        return writable().written;
+    }
 
 private:
     /**
@@ -357,7 +384,7 @@ private:
      *
      * @param w The Writable representing the parent.
      */
-    virtual void linkHierarchy(Writable& w);
+    virtual void linkHierarchy( Writable & w );
 }; // AttributableImpl
 
 // Alias this as Attributable since this is a public abstract parent class
@@ -377,57 +404,59 @@ public:
     }
 };
 
-//TODO explicitly instantiate Attributable::setAttribute for all T in Datatype
+// TODO explicitly instantiate Attributable::setAttribute for all T in Datatype
 template< typename T >
-inline bool
-AttributableImpl::setAttribute( std::string const & key, T value )
+inline bool AttributableImpl::setAttribute( std::string const & key, T value )
 {
     auto & attri = get();
-    if(IOHandler() && Access::READ_ONLY == IOHandler()->m_frontendAccess )
+    if( IOHandler() && Access::READ_ONLY == IOHandler()->m_frontendAccess )
     {
         auxiliary::OutOfRangeMsg const out_of_range_msg(
-            "Attribute",
-            "can not be set (read-only)."
-        );
-        throw no_such_attribute_error(out_of_range_msg(key));
+            "Attribute", "can not be set (read-only)." );
+        throw no_such_attribute_error( out_of_range_msg( key ) );
     }
 
     dirty() = true;
-    auto it = attri.m_attributes.lower_bound(key);
-    if( it != attri.m_attributes.end()
-        && !attri.m_attributes.key_comp()(key, it->first) )
+    auto it = attri.m_attributes.lower_bound( key );
+    if( it != attri.m_attributes.end() &&
+        !attri.m_attributes.key_comp()( key, it->first ) )
     {
         // key already exists in map, just replace the value
-        it->second = Attribute(value);
+        it->second = Attribute( value );
         return true;
-    } else
+    }
+    else
     {
         // emplace a new map element for an unknown key
         attri.m_attributes.emplace_hint(
-            it, std::make_pair(key, Attribute(std::move(value))));
+            it, std::make_pair( key, Attribute( std::move( value ) ) ) );
         return false;
     }
 }
 inline bool
 AttributableImpl::setAttribute( std::string const & key, char const value[] )
 {
-    return this->setAttribute(key, std::string(value));
+    return this->setAttribute( key, std::string( value ) );
 }
 
 template< typename T >
 inline T AttributableImpl::readFloatingpoint( std::string const & key ) const
 {
-    static_assert(std::is_floating_point< T >::value, "Type of attribute must be floating point");
+    static_assert(
+        std::is_floating_point< T >::value,
+        "Type of attribute must be floating point" );
 
-    return getAttribute(key).get< T >();
+    return getAttribute( key ).get< T >();
 }
 
 template< typename T >
 inline std::vector< T >
 AttributableImpl::readVectorFloatingpoint( std::string const & key ) const
 {
-    static_assert(std::is_floating_point< T >::value, "Type of attribute must be floating point");
+    static_assert(
+        std::is_floating_point< T >::value,
+        "Type of attribute must be floating point" );
 
-    return getAttribute(key).get< std::vector< T > >();
+    return getAttribute( key ).get< std::vector< T > >();
 }
 } // namespace openPMD

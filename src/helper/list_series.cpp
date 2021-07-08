@@ -25,59 +25,99 @@
 #include "openPMD/Mesh.hpp"
 #include "openPMD/ParticleSpecies.hpp"
 
-#include <utility>
 #include <iterator>
 #include <set>
 #include <string>
-
+#include <utility>
 
 namespace openPMD
 {
 namespace helper
 {
     std::ostream &
-    listSeries(
-        Series & series,
-        bool const longer,
-        std::ostream & out
-    )
+    listSeries( Series & series, bool const longer, std::ostream & out )
     {
         out << "openPMD series: " << series.name() << "\n";
         out << "openPMD standard: " << series.openPMD() << "\n";
-        out << "openPMD extensions: " << series.openPMDextension() << "\n\n";  // TODO improve listing of extensions
+        out << "openPMD extensions: " << series.openPMDextension()
+            << "\n\n"; // TODO improve listing of extensions
 
         if( longer )
         {
             out << "data author: ";
-            try{ out << series.author() << "\n"; } catch( no_such_attribute_error const & ) { out << "unknown\n"; }
+            try
+            {
+                out << series.author() << "\n";
+            }
+            catch( no_such_attribute_error const & )
+            {
+                out << "unknown\n";
+            }
             out << "data created: ";
-            try{ out << series.date() << "\n"; } catch( no_such_attribute_error const & ) { out << "unknown\n"; }
+            try
+            {
+                out << series.date() << "\n";
+            }
+            catch( no_such_attribute_error const & )
+            {
+                out << "unknown\n";
+            }
             out << "data backend: " << series.backend() << "\n";
             out << "generating machine: ";
-            try{ out << series.machine() << "\n"; } catch( no_such_attribute_error const & ) { out << "unknown\n"; }
+            try
+            {
+                out << series.machine() << "\n";
+            }
+            catch( no_such_attribute_error const & )
+            {
+                out << "unknown\n";
+            }
             out << "generating software: ";
-            try{ out << series.software(); } catch( no_such_attribute_error const & ) { out << "unknown"; }
-            out <<  " (version: ";
-            try{ out << series.softwareVersion() << ")\n"; } catch( no_such_attribute_error const & ) { out << "unknown)\n"; }
+            try
+            {
+                out << series.software();
+            }
+            catch( no_such_attribute_error const & )
+            {
+                out << "unknown";
+            }
+            out << " (version: ";
+            try
+            {
+                out << series.softwareVersion() << ")\n";
+            }
+            catch( no_such_attribute_error const & )
+            {
+                out << "unknown)\n";
+            }
             out << "generating software dependencies: ";
-            try{ out << series.softwareDependencies() << "\n"; } catch( no_such_attribute_error const & ) { out << "unknown\n"; }
+            try
+            {
+                out << series.softwareDependencies() << "\n";
+            }
+            catch( no_such_attribute_error const & )
+            {
+                out << "unknown\n";
+            }
 
             out << "\n";
         }
 
-        std::set< std::string > meshes;     //! unique mesh names in all iterations
-        std::set< std::string > particles;  //! unique particle species names in all iterations
+        std::set< std::string > meshes; //! unique mesh names in all iterations
+        std::set< std::string >
+            particles; //! unique particle species names in all iterations
 
         out << "number of iterations: " << series.iterations.size();
         if( longer )
             out << " (" << series.iterationEncoding() << ")";
         out << "\n";
-        if( series.iterations.size() > 0u  )
+        if( series.iterations.size() > 0u )
         {
             if( longer )
                 out << "  all iterations: ";
 
-            for( auto const& i : series.readIterations() ) {
+            for( auto const & i : series.readIterations() )
+            {
                 if( longer )
                     out << i.iterationIndex << " ";
 
@@ -86,16 +126,16 @@ namespace helper
                     i.meshes.begin(),
                     i.meshes.end(),
                     std::inserter( meshes, meshes.end() ),
-                    []( std::pair< std::string, Mesh > const & p )
-                        { return p.first; }
-                );
+                    []( std::pair< std::string, Mesh > const & p ) {
+                        return p.first;
+                    } );
                 std::transform(
                     i.particles.begin(),
                     i.particles.end(),
                     std::inserter( particles, particles.end() ),
-                    []( std::pair< std::string, ParticleSpecies > const & p )
-                        { return p.first; }
-                );
+                    []( std::pair< std::string, ParticleSpecies > const & p ) {
+                        return p.first;
+                    } );
             }
 
             if( longer )
@@ -107,7 +147,7 @@ namespace helper
         if( longer && meshes.size() > 0u )
         {
             out << "  all meshes:\n";
-            for( auto const& m : meshes )
+            for( auto const & m : meshes )
                 out << "    " << m << "\n";
         }
 
@@ -116,7 +156,7 @@ namespace helper
         if( longer && particles.size() > 0u )
         {
             out << "  all particle species:\n";
-            for( auto const& p : particles )
+            for( auto const & p : particles )
                 out << "    " << p << "\n";
         }
 

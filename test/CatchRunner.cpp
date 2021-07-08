@@ -2,11 +2,11 @@
 #include <catch2/catch.hpp>
 
 #if openPMD_HAVE_MPI
-#   include <mpi.h>
+#include <mpi.h>
 
-int main(int argc, char *argv[])
+int main( int argc, char * argv[] )
 {
-    MPI_Init(&argc, &argv);
+    MPI_Init( &argc, &argv );
 
     Catch::Session session;
     int result = 0;
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     return result;
 }
 #else
-int main(int argc, char *argv[])
+int main( int argc, char * argv[] )
 {
     Catch::Session session;
     int result = 0;

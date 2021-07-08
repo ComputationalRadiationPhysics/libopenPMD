@@ -20,12 +20,11 @@
  */
 #pragma once
 
-#include "openPMD/backend/PatchRecordComponent.hpp"
 #include "openPMD/backend/BaseRecord.hpp"
+#include "openPMD/backend/PatchRecordComponent.hpp"
 
-#include <unordered_map>
 #include <string>
-
+#include <unordered_map>
 
 namespace openPMD
 {
@@ -36,13 +35,13 @@ class PatchRecord : public BaseRecord< PatchRecordComponent >
     friend class ParticlePatches;
 
 public:
-    PatchRecord& setUnitDimension(std::map< UnitDimension, double > const&);
+    PatchRecord & setUnitDimension( std::map< UnitDimension, double > const & );
     ~PatchRecord() override = default;
 
 private:
     PatchRecord() = default;
 
-    void flush_impl(std::string const&) override;
+    void flush_impl( std::string const & ) override;
     void read() override;
-};  //PatchRecord
+}; // PatchRecord
 } // openPMD

@@ -2,10 +2,10 @@
 
 #include <utility>
 
-
 namespace openPMD
 {
-    JSONFilePosition::JSONFilePosition( json::json_pointer ptr):
-        id( std::move( ptr ) )
-    {}
+JSONFilePosition::JSONFilePosition( json::json_pointer ptr )
+    : id( std::move( ptr ) )
+{
+}
 }

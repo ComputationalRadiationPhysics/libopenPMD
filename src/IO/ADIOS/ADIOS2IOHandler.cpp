@@ -37,32 +37,31 @@
 #include <string>
 #include <type_traits>
 
-
 namespace openPMD
 {
 #if openPMD_USE_VERIFY
 #define VERIFY( CONDITION, TEXT )                                              \
     {                                                                          \
-        if ( !( CONDITION ) )                                                  \
+        if( !( CONDITION ) )                                                   \
             throw std::runtime_error( ( TEXT ) );                              \
     }
 #else
 #define VERIFY( CONDITION, TEXT )                                              \
     do                                                                         \
     {                                                                          \
-        (void)sizeof( CONDITION );                                             \
-    } while ( 0 );
+        ( void )sizeof( CONDITION );                                           \
+    } while( 0 );
 #endif
 
 #define VERIFY_ALWAYS( CONDITION, TEXT )                                       \
     {                                                                          \
-        if ( !( CONDITION ) )                                                  \
+        if( !( CONDITION ) )                                                   \
             throw std::runtime_error( ( TEXT ) );                              \
     }
 
 #if openPMD_HAVE_ADIOS2
 
-#    if openPMD_HAVE_MPI
+#if openPMD_HAVE_MPI
 
 ADIOS2IOHandlerImpl::ADIOS2IOHandlerImpl(
     AbstractIOHandler * handler,
@@ -76,12 +75,10 @@ ADIOS2IOHandlerImpl::ADIOS2IOHandlerImpl(
     init( std::move( cfg ) );
 }
 
-#    endif // openPMD_HAVE_MPI
+#endif // openPMD_HAVE_MPI
 
 ADIOS2IOHandlerImpl::ADIOS2IOHandlerImpl(
-    AbstractIOHandler * handler,
-    nlohmann::json cfg,
-    std::string engineType )
+    AbstractIOHandler * handler, nlohmann::json cfg, std::string engineType )
     : AbstractIOHandlerImplCommon( handler )
     , m_ADIOS{ ADIOS2_DEBUG_MODE }
     , m_engineType( std::move( engineType ) )
@@ -119,8 +116,7 @@ ADIOS2IOHandlerImpl::~ADIOS2IOHandlerImpl()
     }
 }
 
-void
-ADIOS2IOHandlerImpl::init( nlohmann::json cfg )
+void ADIOS2IOHandlerImpl::init( nlohmann::json cfg )
 {
     if( cfg.contains( "adios2" ) )
     {
@@ -210,16 +206,19 @@ ADIOS2IOHandlerImpl::getOperators()
     return getOperators( m_config );
 }
 
-std::string
-ADIOS2IOHandlerImpl::fileSuffix() const
+std::string ADIOS2IOHandlerImpl::fileSuffix() const
 {
     // SST engine adds its suffix unconditionally
     // so we don't add it
     static std::map< std::string, std::string > endings{
-        { "sst", "" }, { "staging", "" }, { "bp4", ".bp" },
-        { "bp3", ".bp" },  { "file", ".bp" },     { "hdf5", ".h5" },
-        { "nullcore", ".nullcore" }, { "ssc", ".ssc" }
-    };
+        { "sst", "" },
+        { "staging", "" },
+        { "bp4", ".bp" },
+        { "bp3", ".bp" },
+        { "file", ".bp" },
+        { "hdf5", ".h5" },
+        { "nullcore", ".nullcore" },
+        { "ssc", ".ssc" } };
     auto it = endings.find( m_engineType );
     if( it != endings.end() )
     {
@@ -231,19 +230,19 @@ ADIOS2IOHandlerImpl::fileSuffix() const
     }
 }
 
-std::future< void >
-ADIOS2IOHandlerImpl::flush()
+std::future< void > ADIOS2IOHandlerImpl::flush()
 {
     auto res = AbstractIOHandlerImpl::flush();
-    for ( auto & p : m_fileData )
+    for( auto & p : m_fileData )
     {
-        if ( m_dirty.find( p.first ) != m_dirty.end( ) )
+        if( m_dirty.find( p.first ) != m_dirty.end() )
         {
-            p.second->flush( m_handler->m_flushLevel, /* writeAttributes = */ false );
+            p.second->flush(
+                m_handler->m_flushLevel, /* writeAttributes = */ false );
         }
         else
         {
-            p.second->drop( );
+            p.second->drop();
         }
     }
     return res;
@@ -253,10 +252,11 @@ void ADIOS2IOHandlerImpl::createFile(
     Writable * writable,
     Parameter< Operation::CREATE_FILE > const & parameters )
 {
-    VERIFY_ALWAYS( m_handler->m_backendAccess != Access::READ_ONLY,
-                   "[ADIOS2] Creating a file in read-only mode is not possible." );
+    VERIFY_ALWAYS(
+        m_handler->m_backendAccess != Access::READ_ONLY,
+        "[ADIOS2] Creating a file in read-only mode is not possible." );
 
-    if ( !writable->written )
+    if( !writable->written )
     {
         std::string name = parameters.name;
         std::string suffix( fileSuffix() );
@@ -274,16 +274,16 @@ void ADIOS2IOHandlerImpl::createFile(
                      std::get< PE_InvalidatableFile >( res_pair ) ) ) ) ),
             "[ADIOS2] Can only overwrite existing file in CREATE mode." );
 
-        if ( !std::get< PE_NewlyCreated >( res_pair ) )
+        if( !std::get< PE_NewlyCreated >( res_pair ) )
         {
             auto file = std::get< PE_InvalidatableFile >( res_pair );
             m_dirty.erase( file );
             dropFileData( file );
-            file.invalidate( );
+            file.invalidate();
         }
 
         std::string const dir( m_handler->directory );
-        if ( !auxiliary::directory_exists( dir ) )
+        if( !auxiliary::directory_exists( dir ) )
         {
             auto success = auxiliary::create_directories( dir );
             VERIFY( success, "[ADIOS2] Could not create directory." );
@@ -297,7 +297,7 @@ void ADIOS2IOHandlerImpl::createFile(
 
         writable->written = true;
         writable->abstractFilePosition =
-            std::make_shared< ADIOS2FilePosition >( );
+            std::make_shared< ADIOS2FilePosition >();
     }
 }
 
@@ -309,7 +309,7 @@ void ADIOS2IOHandlerImpl::createPath(
     refreshFileFromParent( writable );
 
     /* Sanitize path */
-    if ( !auxiliary::starts_with( parameters.path, '/' ) )
+    if( !auxiliary::starts_with( parameters.path, '/' ) )
     {
         path = filePositionToString( setAndGetFilePosition( writable ) ) + "/" +
             auxiliary::removeSlashes( parameters.path );
@@ -331,12 +331,13 @@ void ADIOS2IOHandlerImpl::createDataset(
     Writable * writable,
     const Parameter< Operation::CREATE_DATASET > & parameters )
 {
-    if ( m_handler->m_backendAccess == Access::READ_ONLY )
+    if( m_handler->m_backendAccess == Access::READ_ONLY )
     {
-        throw std::runtime_error( "[ADIOS2] Creating a dataset in a file opened as read "
-                                  "only is not possible." );
+        throw std::runtime_error(
+            "[ADIOS2] Creating a dataset in a file opened as read "
+            "only is not possible." );
     }
-    if ( !writable->written )
+    if( !writable->written )
     {
         /* Sanitize name */
         std::string name = auxiliary::removeSlashes( parameters.name );
@@ -382,7 +383,8 @@ void ADIOS2IOHandlerImpl::createDataset(
         }
 
         // cast from openPMD::Extent to adios2::Dims
-        adios2::Dims const shape( parameters.extent.begin(), parameters.extent.end() );
+        adios2::Dims const shape(
+            parameters.extent.begin(), parameters.extent.end() );
 
         auto & fileData = getFileData( file );
         switchAdios2VariableType(
@@ -403,8 +405,7 @@ namespace detail
     struct DatasetExtender
     {
         template< typename T, typename... Args >
-        void
-        operator()(
+        void operator()(
             adios2::IO & IO,
             std::string const & variable,
             Extent const & newShape )
@@ -429,8 +430,7 @@ namespace detail
     };
 } // namespace detail
 
-void
-ADIOS2IOHandlerImpl::extendDataset(
+void ADIOS2IOHandlerImpl::extendDataset(
     Writable * writable,
     const Parameter< Operation::EXTEND_DATASET > & parameters )
 {
@@ -446,15 +446,14 @@ ADIOS2IOHandlerImpl::extendDataset(
     switchAdios2VariableType( dt, de, filedata.m_IO, name, parameters.extent );
 }
 
-void
-ADIOS2IOHandlerImpl::openFile(
-    Writable * writable,
-    const Parameter< Operation::OPEN_FILE > & parameters )
+void ADIOS2IOHandlerImpl::openFile(
+    Writable * writable, const Parameter< Operation::OPEN_FILE > & parameters )
 {
-    if ( !auxiliary::directory_exists( m_handler->directory ) )
+    if( !auxiliary::directory_exists( m_handler->directory ) )
     {
-        throw no_such_file_error( "[ADIOS2] Supplied directory is not valid: " +
-                                  m_handler->directory );
+        throw no_such_file_error(
+            "[ADIOS2] Supplied directory is not valid: " +
+            m_handler->directory );
     }
 
     std::string name = parameters.name;
@@ -469,7 +468,7 @@ ADIOS2IOHandlerImpl::openFile(
     associateWithFile( writable, file );
 
     writable->written = true;
-    writable->abstractFilePosition = std::make_shared< ADIOS2FilePosition >( );
+    writable->abstractFilePosition = std::make_shared< ADIOS2FilePosition >();
 
     m_iterationEncoding = parameters.encoding;
     // enforce opening the file
@@ -477,18 +476,16 @@ ADIOS2IOHandlerImpl::openFile(
     getFileData( file );
 }
 
-void
-ADIOS2IOHandlerImpl::closeFile(
-    Writable * writable,
-    Parameter< Operation::CLOSE_FILE > const & )
+void ADIOS2IOHandlerImpl::closeFile(
+    Writable * writable, Parameter< Operation::CLOSE_FILE > const & )
 {
     auto fileIterator = m_files.find( writable );
-    if ( fileIterator != m_files.end( ) )
+    if( fileIterator != m_files.end() )
     {
         // do not invalidate the file
         // it still exists, it is just not open
         auto it = m_fileData.find( fileIterator->second );
-        if ( it != m_fileData.end( ) )
+        if( it != m_fileData.end() )
         {
             /*
              * No need to finalize unconditionally, destructor will take care
@@ -514,9 +511,8 @@ void ADIOS2IOHandlerImpl::openPath(
     std::string prefix =
         filePositionToString( setAndGetFilePosition( writable->parent ) );
     std::string suffix = auxiliary::removeSlashes( parameters.path );
-    std::string infix = suffix.empty() || auxiliary::ends_with( prefix, '/' )
-        ? ""
-        : "/";
+    std::string infix =
+        suffix.empty() || auxiliary::ends_with( prefix, '/' ) ? "" : "/";
 
     /* ADIOS has no concept for explicitly creating paths.
      * They are implicitly created with the paths of variables/attributes. */
@@ -530,7 +526,7 @@ void ADIOS2IOHandlerImpl::openDataset(
     Writable * writable, Parameter< Operation::OPEN_DATASET > & parameters )
 {
     auto name = auxiliary::removeSlashes( parameters.name );
-    writable->abstractFilePosition.reset( );
+    writable->abstractFilePosition.reset();
     auto pos = setAndGetFilePosition( writable, name );
     pos->gd = ADIOS2FilePosition::GD::DATASET;
     auto file = refreshFileFromParent( writable );
@@ -558,10 +554,8 @@ void ADIOS2IOHandlerImpl::deletePath(
     throw std::runtime_error( "[ADIOS2] Backend does not support deletion." );
 }
 
-void
-ADIOS2IOHandlerImpl::deleteDataset(
-    Writable *,
-    const Parameter< Operation::DELETE_DATASET > & )
+void ADIOS2IOHandlerImpl::deleteDataset(
+    Writable *, const Parameter< Operation::DELETE_DATASET > & )
 {
     // call filedata.invalidateVariablesMap
     throw std::runtime_error( "[ADIOS2] Backend does not support deletion." );
@@ -578,8 +572,9 @@ void ADIOS2IOHandlerImpl::writeDataset(
     Writable * writable,
     const Parameter< Operation::WRITE_DATASET > & parameters )
 {
-    VERIFY_ALWAYS( m_handler->m_backendAccess != Access::READ_ONLY,
-                   "[ADIOS2] Cannot write data in read-only mode." );
+    VERIFY_ALWAYS(
+        m_handler->m_backendAccess != Access::READ_ONLY,
+        "[ADIOS2] Cannot write data in read-only mode." );
     setAndGetFilePosition( writable );
     auto file = refreshFileFromParent( writable );
     detail::BufferedActions & ba = getFileData( file );
@@ -596,37 +591,36 @@ void ADIOS2IOHandlerImpl::writeAttribute(
 {
     switch( attributeLayout() )
     {
-        case AttributeLayout::ByAdiosAttributes:
-            switchType(
-                parameters.dtype,
-                detail::OldAttributeWriter(),
-                this,
-                writable,
-                parameters );
-            break;
-        case AttributeLayout::ByAdiosVariables:
-        {
-            VERIFY_ALWAYS(
-                m_handler->m_backendAccess != Access::READ_ONLY,
-                "[ADIOS2] Cannot write attribute in read-only mode." );
-            auto pos = setAndGetFilePosition( writable );
-            auto file = refreshFileFromParent( writable );
-            auto fullName = nameOfAttribute( writable, parameters.name );
-            auto prefix = filePositionToString( pos );
+    case AttributeLayout::ByAdiosAttributes:
+        switchType(
+            parameters.dtype,
+            detail::OldAttributeWriter(),
+            this,
+            writable,
+            parameters );
+        break;
+    case AttributeLayout::ByAdiosVariables: {
+        VERIFY_ALWAYS(
+            m_handler->m_backendAccess != Access::READ_ONLY,
+            "[ADIOS2] Cannot write attribute in read-only mode." );
+        auto pos = setAndGetFilePosition( writable );
+        auto file = refreshFileFromParent( writable );
+        auto fullName = nameOfAttribute( writable, parameters.name );
+        auto prefix = filePositionToString( pos );
 
-            auto & filedata = getFileData( file );
-            filedata.invalidateAttributesMap();
-            m_dirty.emplace( std::move( file ) );
+        auto & filedata = getFileData( file );
+        filedata.invalidateAttributesMap();
+        m_dirty.emplace( std::move( file ) );
 
-            // this intentionally overwrites previous writes
-            auto & bufferedWrite = filedata.m_attributeWrites[ fullName ];
-            bufferedWrite.name = fullName;
-            bufferedWrite.dtype = parameters.dtype;
-            bufferedWrite.resource = parameters.resource;
-            break;
-        }
-        default:
-            throw std::runtime_error( "Unreachable!" );
+        // this intentionally overwrites previous writes
+        auto & bufferedWrite = filedata.m_attributeWrites[ fullName ];
+        bufferedWrite.name = fullName;
+        bufferedWrite.dtype = parameters.dtype;
+        bufferedWrite.resource = parameters.resource;
+        break;
+    }
+    default:
+        throw std::runtime_error( "Unreachable!" );
     }
 }
 
@@ -645,58 +639,57 @@ void ADIOS2IOHandlerImpl::readDataset(
 
 namespace detail
 {
-struct GetSpan
-{
-    template< typename T, typename... Args >
-    void operator()(
-        ADIOS2IOHandlerImpl * impl,
-        Parameter< Operation::GET_BUFFER_VIEW > & params,
-        detail::BufferedActions & ba,
-        std::string const & varName )
+    struct GetSpan
     {
-        auto & IO = ba.m_IO;
-        auto & engine = ba.getEngine();
-        adios2::Variable< T > variable = impl->verifyDataset< T >(
-            params.offset, params.extent, IO, varName );
-        adios2::Dims offset( params.offset.begin(), params.offset.end() );
-        adios2::Dims extent( params.extent.begin(), params.extent.end() );
-        variable.SetSelection( { std::move( offset ), std::move( extent ) } );
-        typename adios2::Variable< T >::Span span = engine.Put( variable );
-        params.out->backendManagedBuffer = true;
-        /*
-         * SIC!
-         * Do not emplace span.data() yet.
-         * Only call span.data() as soon as the user needs the pointer
-         * (will always be propagated to the backend with parameters.update
-         *  = true).
-         * This avoids repeated resizing of ADIOS2 internal buffers if calling
-         * multiple spans.
-         */
-        // params.out->ptr = span.data();
-        unsigned nextIndex;
-        if( ba.m_updateSpans.empty() )
+        template< typename T, typename... Args >
+        void operator()(
+            ADIOS2IOHandlerImpl * impl,
+            Parameter< Operation::GET_BUFFER_VIEW > & params,
+            detail::BufferedActions & ba,
+            std::string const & varName )
         {
-            nextIndex = 0;
+            auto & IO = ba.m_IO;
+            auto & engine = ba.getEngine();
+            adios2::Variable< T > variable = impl->verifyDataset< T >(
+                params.offset, params.extent, IO, varName );
+            adios2::Dims offset( params.offset.begin(), params.offset.end() );
+            adios2::Dims extent( params.extent.begin(), params.extent.end() );
+            variable.SetSelection(
+                { std::move( offset ), std::move( extent ) } );
+            typename adios2::Variable< T >::Span span = engine.Put( variable );
+            params.out->backendManagedBuffer = true;
+            /*
+             * SIC!
+             * Do not emplace span.data() yet.
+             * Only call span.data() as soon as the user needs the pointer
+             * (will always be propagated to the backend with parameters.update
+             *  = true).
+             * This avoids repeated resizing of ADIOS2 internal buffers if
+             * calling multiple spans.
+             */
+            // params.out->ptr = span.data();
+            unsigned nextIndex;
+            if( ba.m_updateSpans.empty() )
+            {
+                nextIndex = 0;
+            }
+            else
+            {
+                nextIndex = ba.m_updateSpans.rbegin()->first + 1;
+            }
+            params.out->viewIndex = nextIndex;
+            std::unique_ptr< I_UpdateSpan > updateSpan{
+                new UpdateSpan< T >{ std::move( span ) } };
+            ba.m_updateSpans.emplace_hint(
+                ba.m_updateSpans.end(), nextIndex, std::move( updateSpan ) );
         }
-        else
-        {
-            nextIndex = ba.m_updateSpans.rbegin()->first + 1;
-        }
-        params.out->viewIndex = nextIndex;
-        std::unique_ptr< I_UpdateSpan > updateSpan{
-            new UpdateSpan< T >{ std::move( span ) } };
-        ba.m_updateSpans.emplace_hint(
-            ba.m_updateSpans.end(), nextIndex, std::move( updateSpan ) );
-    }
 
-    std::string errorMsg = "ADIOS2: getBufferView()";
-};
+        std::string errorMsg = "ADIOS2: getBufferView()";
+    };
 } // namespace detail
 
-void
-ADIOS2IOHandlerImpl::getBufferView(
-    Writable * writable,
-    Parameter< Operation::GET_BUFFER_VIEW > & parameters )
+void ADIOS2IOHandlerImpl::getBufferView(
+    Writable * writable, Parameter< Operation::GET_BUFFER_VIEW > & parameters )
 {
     // @todo check access mode
     if( m_engineType != "bp4" )
@@ -706,10 +699,10 @@ ADIOS2IOHandlerImpl::getBufferView(
     }
     setAndGetFilePosition( writable );
     auto file = refreshFileFromParent( writable );
-    detail::BufferedActions &ba = getFileData( file );
+    detail::BufferedActions & ba = getFileData( file );
     if( parameters.update )
     {
-        detail::I_UpdateSpan &updater =
+        detail::I_UpdateSpan & updater =
             *ba.m_updateSpans.at( parameters.out->viewIndex );
         parameters.out->ptr = updater.update();
         parameters.out->backendManagedBuffer = true;
@@ -718,29 +711,28 @@ ADIOS2IOHandlerImpl::getBufferView(
     {
         static detail::GetSpan gs;
         std::string name = nameOfVariable( writable );
-        switchAdios2VariableType( parameters.dtype, gs, this, parameters, ba, name );
+        switchAdios2VariableType(
+            parameters.dtype, gs, this, parameters, ba, name );
     }
 }
 
 namespace detail
 {
-template< typename T >
-UpdateSpan< T >::UpdateSpan( adios2::detail::Span< T > span_in ) :
-    span( std::move( span_in ) )
-{
-}
+    template< typename T >
+    UpdateSpan< T >::UpdateSpan( adios2::detail::Span< T > span_in )
+        : span( std::move( span_in ) )
+    {
+    }
 
-template< typename T >
-void *UpdateSpan< T >::update()
-{
-    return span.data();
-}
+    template< typename T >
+    void * UpdateSpan< T >::update()
+    {
+        return span.data();
+    }
 } // namespace detail
 
-void
-ADIOS2IOHandlerImpl::readAttribute(
-    Writable * writable,
-    Parameter< Operation::READ_ATT > & parameters )
+void ADIOS2IOHandlerImpl::readAttribute(
+    Writable * writable, Parameter< Operation::READ_ATT > & parameters )
 {
     auto file = refreshFileFromParent( writable );
     auto pos = setAndGetFilePosition( writable );
@@ -748,24 +740,22 @@ ADIOS2IOHandlerImpl::readAttribute(
     switch( attributeLayout() )
     {
         using AL = AttributeLayout;
-        case AL::ByAdiosAttributes:
-        {
-            detail::OldBufferedAttributeRead bar;
-            bar.name = nameOfAttribute( writable, parameters.name );
-            bar.param = parameters;
-            ba.enqueue( std::move( bar ) );
-            break;
-        }
-        case AL::ByAdiosVariables:
-        {
-            detail::BufferedAttributeRead bar;
-            bar.name = nameOfAttribute( writable, parameters.name );
-            bar.param = parameters;
-            ba.m_attributeReads.push_back( std::move( bar ) );
-            break;
-        }
-        default:
-            throw std::runtime_error( "Unreachable!" );
+    case AL::ByAdiosAttributes: {
+        detail::OldBufferedAttributeRead bar;
+        bar.name = nameOfAttribute( writable, parameters.name );
+        bar.param = parameters;
+        ba.enqueue( std::move( bar ) );
+        break;
+    }
+    case AL::ByAdiosVariables: {
+        detail::BufferedAttributeRead bar;
+        bar.name = nameOfAttribute( writable, parameters.name );
+        bar.param = parameters;
+        ba.m_attributeReads.push_back( std::move( bar ) );
+        break;
+    }
+    default:
+        throw std::runtime_error( "Unreachable!" );
     }
     m_dirty.emplace( std::move( file ) );
 }
@@ -775,11 +765,12 @@ void ADIOS2IOHandlerImpl::listPaths(
 {
     VERIFY_ALWAYS(
         writable->written,
-        "[ADIOS2] Internal error: Writable not marked written during path listing" );
+        "[ADIOS2] Internal error: Writable not marked written during path "
+        "listing" );
     auto file = refreshFileFromParent( writable );
     auto pos = setAndGetFilePosition( writable );
     std::string myName = filePositionToString( pos );
-    if ( !auxiliary::ends_with( myName, '/' ) )
+    if( !auxiliary::ends_with( myName, '/' ) )
     {
         myName = myName + '/';
     }
@@ -809,48 +800,17 @@ void ADIOS2IOHandlerImpl::listPaths(
     switch( attributeLayout() )
     {
         using AL = AttributeLayout;
-        case AL::ByAdiosVariables:
+    case AL::ByAdiosVariables: {
+        std::vector< std::string > vars =
+            fileData.availableVariablesPrefixed( myName );
+        for( auto var : vars )
         {
-            std::vector< std::string > vars =
-                fileData.availableVariablesPrefixed( myName );
-            for( auto var : vars )
+            // since current Writable is a group and no dataset,
+            // var == "__data__" is not possible
+            if( auxiliary::ends_with( var, "/__data__" ) )
             {
-                // since current Writable is a group and no dataset,
-                // var == "__data__" is not possible
-                if( auxiliary::ends_with( var, "/__data__" ) )
-                {
-                    // here be datasets
-                    var = auxiliary::replace_last( var, "/__data__", "" );
-                    auto firstSlash = var.find_first_of( '/' );
-                    if( firstSlash != std::string::npos )
-                    {
-                        var = var.substr( 0, firstSlash );
-                        subdirs.emplace( std::move( var ) );
-                    }
-                    else
-                    { // var is a dataset at the current level
-                        delete_me.push_back( std::move( var ) );
-                    }
-                }
-                else
-                {
-                    // here be attributes
-                    auto firstSlash = var.find_first_of( '/' );
-                    if( firstSlash != std::string::npos )
-                    {
-                        var = var.substr( 0, firstSlash );
-                        subdirs.emplace( std::move( var ) );
-                    }
-                }
-            }
-            break;
-        }
-        case AL::ByAdiosAttributes:
-        {
-            std::vector< std::string > vars =
-                fileData.availableVariablesPrefixed( myName );
-            for( auto var : vars )
-            {
+                // here be datasets
+                var = auxiliary::replace_last( var, "/__data__", "" );
                 auto firstSlash = var.find_first_of( '/' );
                 if( firstSlash != std::string::npos )
                 {
@@ -862,26 +822,55 @@ void ADIOS2IOHandlerImpl::listPaths(
                     delete_me.push_back( std::move( var ) );
                 }
             }
-            std::vector< std::string > attributes =
-                fileData.availableAttributesPrefixed( myName );
-            for( auto attr : attributes )
+            else
             {
-                auto firstSlash = attr.find_first_of( '/' );
+                // here be attributes
+                auto firstSlash = var.find_first_of( '/' );
                 if( firstSlash != std::string::npos )
                 {
-                    attr = attr.substr( 0, firstSlash );
-                    subdirs.emplace( std::move( attr ) );
+                    var = var.substr( 0, firstSlash );
+                    subdirs.emplace( std::move( var ) );
                 }
             }
-            break;
         }
+        break;
+    }
+    case AL::ByAdiosAttributes: {
+        std::vector< std::string > vars =
+            fileData.availableVariablesPrefixed( myName );
+        for( auto var : vars )
+        {
+            auto firstSlash = var.find_first_of( '/' );
+            if( firstSlash != std::string::npos )
+            {
+                var = var.substr( 0, firstSlash );
+                subdirs.emplace( std::move( var ) );
+            }
+            else
+            { // var is a dataset at the current level
+                delete_me.push_back( std::move( var ) );
+            }
+        }
+        std::vector< std::string > attributes =
+            fileData.availableAttributesPrefixed( myName );
+        for( auto attr : attributes )
+        {
+            auto firstSlash = attr.find_first_of( '/' );
+            if( firstSlash != std::string::npos )
+            {
+                attr = attr.substr( 0, firstSlash );
+                subdirs.emplace( std::move( attr ) );
+            }
+        }
+        break;
+    }
     }
 
-    for ( auto & d : delete_me )
+    for( auto & d : delete_me )
     {
         subdirs.erase( d );
     }
-    for ( auto & path : subdirs )
+    for( auto & path : subdirs )
     {
         parameters.paths->emplace_back( std::move( path ) );
     }
@@ -892,12 +881,13 @@ void ADIOS2IOHandlerImpl::listDatasets(
 {
     VERIFY_ALWAYS(
         writable->written,
-        "[ADIOS2] Internal error: Writable not marked written during path listing" );
+        "[ADIOS2] Internal error: Writable not marked written during path "
+        "listing" );
     auto file = refreshFileFromParent( writable );
     auto pos = setAndGetFilePosition( writable );
     // adios2::Engine & engine = getEngine( file );
     std::string myName = filePositionToString( pos );
-    if ( !auxiliary::ends_with( myName, '/' ) )
+    if( !auxiliary::ends_with( myName, '/' ) )
     {
         myName = myName + '/';
     }
@@ -943,13 +933,14 @@ void ADIOS2IOHandlerImpl::listDatasets(
 void ADIOS2IOHandlerImpl::listAttributes(
     Writable * writable, Parameter< Operation::LIST_ATTS > & parameters )
 {
-    VERIFY_ALWAYS( writable->written,
-                   "[ADIOS2] Internal error: Writable not marked "
-                   "written during attribute writing" );
+    VERIFY_ALWAYS(
+        writable->written,
+        "[ADIOS2] Internal error: Writable not marked "
+        "written during attribute writing" );
     auto file = refreshFileFromParent( writable );
     auto pos = setAndGetFilePosition( writable );
     auto attributePrefix = filePositionToString( pos );
-    if ( attributePrefix == "/" )
+    if( attributePrefix == "/" )
     {
         attributePrefix = "";
     }
@@ -960,12 +951,12 @@ void ADIOS2IOHandlerImpl::listAttributes(
     switch( attributeLayout() )
     {
         using AL = AttributeLayout;
-        case AL::ByAdiosAttributes:
-            attrs = ba.availableAttributesPrefixed( attributePrefix );
-            break;
-        case AL::ByAdiosVariables:
-            attrs = ba.availableVariablesPrefixed( attributePrefix );
-            break;
+    case AL::ByAdiosAttributes:
+        attrs = ba.availableAttributesPrefixed( attributePrefix );
+        break;
+    case AL::ByAdiosVariables:
+        attrs = ba.availableVariablesPrefixed( attributePrefix );
+        break;
     }
     for( auto & rawAttr : attrs )
     {
@@ -983,20 +974,16 @@ void ADIOS2IOHandlerImpl::listAttributes(
     }
 }
 
-void
-ADIOS2IOHandlerImpl::advance(
-    Writable * writable,
-    Parameter< Operation::ADVANCE > & parameters )
+void ADIOS2IOHandlerImpl::advance(
+    Writable * writable, Parameter< Operation::ADVANCE > & parameters )
 {
     auto file = m_files[ writable ];
     auto & ba = getFileData( file );
     *parameters.status = ba.advance( parameters.mode );
 }
 
-void
-ADIOS2IOHandlerImpl::closePath(
-    Writable * writable,
-    Parameter< Operation::CLOSE_PATH > const & )
+void ADIOS2IOHandlerImpl::closePath(
+    Writable * writable, Parameter< Operation::CLOSE_PATH > const & )
 {
     VERIFY_ALWAYS(
         writable->written,
@@ -1026,16 +1013,14 @@ ADIOS2IOHandlerImpl::closePath(
     }
 }
 
-void
-ADIOS2IOHandlerImpl::availableChunks(
-    Writable * writable,
-    Parameter< Operation::AVAILABLE_CHUNKS > & parameters )
+void ADIOS2IOHandlerImpl::availableChunks(
+    Writable * writable, Parameter< Operation::AVAILABLE_CHUNKS > & parameters )
 {
     setAndGetFilePosition( writable );
     auto file = refreshFileFromParent( writable );
     detail::BufferedActions & ba = getFileData( file );
     std::string varName = nameOfVariable( writable );
-    auto engine = ba.getEngine( ); // make sure that data are present
+    auto engine = ba.getEngine(); // make sure that data are present
     auto datatype = detail::fromADIOS2Type( ba.m_IO.VariableType( varName ) );
     static detail::RetrieveBlocksInfo rbi;
     switchAdios2VariableType(
@@ -1045,7 +1030,7 @@ ADIOS2IOHandlerImpl::availableChunks(
 adios2::Mode
 ADIOS2IOHandlerImpl::adios2AccessMode( std::string const & fullPath )
 {
-    switch ( m_handler->m_backendAccess )
+    switch( m_handler->m_backendAccess )
     {
     case Access::CREATE:
         return adios2::Mode::Write;
@@ -1074,8 +1059,7 @@ ADIOS2IOHandlerImpl::adios2AccessMode( std::string const & fullPath )
 
 auxiliary::TracingJSON ADIOS2IOHandlerImpl::nullvalue = nlohmann::json();
 
-std::string
-ADIOS2IOHandlerImpl::filePositionToString(
+std::string ADIOS2IOHandlerImpl::filePositionToString(
     std::shared_ptr< ADIOS2FilePosition > filepos )
 {
     return filepos->location;
@@ -1085,18 +1069,18 @@ std::shared_ptr< ADIOS2FilePosition > ADIOS2IOHandlerImpl::extendFilePosition(
     std::shared_ptr< ADIOS2FilePosition > const & oldPos, std::string s )
 {
     auto path = filePositionToString( oldPos );
-    if ( !auxiliary::ends_with( path, '/' ) &&
-         !auxiliary::starts_with( s, '/' ) )
+    if( !auxiliary::ends_with( path, '/' ) &&
+        !auxiliary::starts_with( s, '/' ) )
     {
         path = path + "/";
     }
-    else if ( auxiliary::ends_with( path, '/' ) &&
-              auxiliary::starts_with( s, '/' ) )
+    else if(
+        auxiliary::ends_with( path, '/' ) && auxiliary::starts_with( s, '/' ) )
     {
         path = auxiliary::replace_last( path, "/", "" );
     }
-    return std::make_shared< ADIOS2FilePosition >( path + std::move( s ),
-                                                   oldPos->gd );
+    return std::make_shared< ADIOS2FilePosition >(
+        path + std::move( s ), oldPos->gd );
 }
 
 auxiliary::Option< adios2::Operator >
@@ -1104,12 +1088,13 @@ ADIOS2IOHandlerImpl::getCompressionOperator( std::string const & compression )
 {
     adios2::Operator res;
     auto it = m_operators.find( compression );
-    if ( it == m_operators.end( ) )
+    if( it == m_operators.end() )
     {
-        try {
+        try
+        {
             res = m_ADIOS.DefineOperator( compression, compression );
         }
-        catch ( std::invalid_argument const & )
+        catch( std::invalid_argument const & )
         {
             std::cerr << "Warning: ADIOS2 backend does not support compression "
                          "method "
@@ -1126,8 +1111,7 @@ ADIOS2IOHandlerImpl::getCompressionOperator( std::string const & compression )
     return auxiliary::makeOption( adios2::Operator( res ) );
 }
 
-std::string
-ADIOS2IOHandlerImpl::nameOfVariable( Writable * writable )
+std::string ADIOS2IOHandlerImpl::nameOfVariable( Writable * writable )
 {
     auto filepos = setAndGetFilePosition( writable );
     auto res = filePositionToString( filepos );
@@ -1137,26 +1121,26 @@ ADIOS2IOHandlerImpl::nameOfVariable( Writable * writable )
     }
     switch( filepos->gd )
     {
-        case ADIOS2FilePosition::GD::GROUP:
-            return res;
-        case ADIOS2FilePosition::GD::DATASET:
-            if( auxiliary::ends_with( res, '/' ) )
-            {
-                return res + "__data__";
-            }
-            else
-            {
-                // By convention, this path should always be taken
-                // But let's be safe
-                return res + "/__data__";
-            }
-        default:
-            throw std::runtime_error( "[ADIOS2IOHandlerImpl] Unreachable!" );
+    case ADIOS2FilePosition::GD::GROUP:
+        return res;
+    case ADIOS2FilePosition::GD::DATASET:
+        if( auxiliary::ends_with( res, '/' ) )
+        {
+            return res + "__data__";
+        }
+        else
+        {
+            // By convention, this path should always be taken
+            // But let's be safe
+            return res + "/__data__";
+        }
+    default:
+        throw std::runtime_error( "[ADIOS2IOHandlerImpl] Unreachable!" );
     }
 }
 
-std::string ADIOS2IOHandlerImpl::nameOfAttribute( Writable * writable,
-                                                  std::string attribute )
+std::string ADIOS2IOHandlerImpl::nameOfAttribute(
+    Writable * writable, std::string attribute )
 {
     auto pos = setAndGetFilePosition( writable );
     return filePositionToString(
@@ -1172,16 +1156,18 @@ ADIOS2IOHandlerImpl::groupOrDataset( Writable * writable )
 detail::BufferedActions &
 ADIOS2IOHandlerImpl::getFileData( InvalidatableFile file )
 {
-    VERIFY_ALWAYS( file.valid( ),
-                   "[ADIOS2] Cannot retrieve file data for a file that has "
-                   "been overwritten or deleted." )
+    VERIFY_ALWAYS(
+        file.valid(),
+        "[ADIOS2] Cannot retrieve file data for a file that has "
+        "been overwritten or deleted." )
     auto it = m_fileData.find( file );
-    if ( it == m_fileData.end( ) )
+    if( it == m_fileData.end() )
     {
         return *m_fileData
-                    .emplace( std::move( file ),
-                              std::make_unique< detail::BufferedActions >(
-                                  *this, file) )
+                    .emplace(
+                        std::move( file ),
+                        std::make_unique< detail::BufferedActions >(
+                            *this, file ) )
                     .first->second;
     }
     else
@@ -1193,83 +1179,86 @@ ADIOS2IOHandlerImpl::getFileData( InvalidatableFile file )
 void ADIOS2IOHandlerImpl::dropFileData( InvalidatableFile file )
 {
     auto it = m_fileData.find( file );
-    if ( it != m_fileData.end( ) )
+    if( it != m_fileData.end() )
     {
-        it->second->drop( );
+        it->second->drop();
         m_fileData.erase( it );
     }
 }
 
-template < typename T >
-adios2::Variable< T >
-ADIOS2IOHandlerImpl::verifyDataset( Offset const & offset,
-                                    Extent const & extent, adios2::IO & IO,
-                                    std::string const & varName )
+template< typename T >
+adios2::Variable< T > ADIOS2IOHandlerImpl::verifyDataset(
+    Offset const & offset,
+    Extent const & extent,
+    adios2::IO & IO,
+    std::string const & varName )
 {
     {
-        auto requiredType = adios2::GetType< T >( );
+        auto requiredType = adios2::GetType< T >();
         auto actualType = IO.VariableType( varName );
-        VERIFY_ALWAYS( requiredType == actualType,
-                       "[ADIOS2] Trying to access a dataset with wrong type (trying to "
-                       "access dataset with type " +
-                           requiredType + ", but has type " + actualType + ")" )
+        VERIFY_ALWAYS(
+            requiredType == actualType,
+            "[ADIOS2] Trying to access a dataset with wrong type (trying to "
+            "access dataset with type " +
+                requiredType + ", but has type " + actualType + ")" )
     }
     adios2::Variable< T > var = IO.InquireVariable< T >( varName );
-    VERIFY_ALWAYS( var.operator bool( ),
-                   "[ADIOS2] Internal error: Failed opening ADIOS2 variable." )
+    VERIFY_ALWAYS(
+        var.operator bool(),
+        "[ADIOS2] Internal error: Failed opening ADIOS2 variable." )
     // TODO leave this check to ADIOS?
-    adios2::Dims shape = var.Shape( );
-    auto actualDim = shape.size( );
+    adios2::Dims shape = var.Shape();
+    auto actualDim = shape.size();
     {
-        auto requiredDim = extent.size( );
-        VERIFY_ALWAYS( requiredDim == actualDim,
-                       "[ADIOS2] Trying to access a dataset with wrong dimensionality "
-                       "(trying to access dataset with dimensionality " +
-                           std::to_string( requiredDim ) +
-                           ", but has dimensionality " +
-                           std::to_string( actualDim ) + ")" )
+        auto requiredDim = extent.size();
+        VERIFY_ALWAYS(
+            requiredDim == actualDim,
+            "[ADIOS2] Trying to access a dataset with wrong dimensionality "
+            "(trying to access dataset with dimensionality " +
+                std::to_string( requiredDim ) + ", but has dimensionality " +
+                std::to_string( actualDim ) + ")" )
     }
-    for ( unsigned int i = 0; i < actualDim; i++ )
+    for( unsigned int i = 0; i < actualDim; i++ )
     {
-        VERIFY_ALWAYS( offset[i] + extent[i] <= shape[i],
-                       "[ADIOS2] Dataset access out of bounds." )
+        VERIFY_ALWAYS(
+            offset[ i ] + extent[ i ] <= shape[ i ],
+            "[ADIOS2] Dataset access out of bounds." )
     }
 
-    var.SetSelection({
-        adios2::Dims(offset.begin(), offset.end()),
-        adios2::Dims(extent.begin(), extent.end())
-    });
+    var.SetSelection(
+        { adios2::Dims( offset.begin(), offset.end() ),
+          adios2::Dims( extent.begin(), extent.end() ) } );
     return var;
 }
 
 namespace detail
 {
     DatasetReader::DatasetReader( openPMD::ADIOS2IOHandlerImpl * impl )
-    : m_impl{impl}
+        : m_impl{ impl }
     {
     }
 
-    template < typename T>
-    void
-    DatasetReader::operator( )( detail::BufferedGet & bp, adios2::IO & IO,
-                                     adios2::Engine & engine,
-                                     std::string const & fileName )
+    template< typename T >
+    void DatasetReader::operator()(
+        detail::BufferedGet & bp,
+        adios2::IO & IO,
+        adios2::Engine & engine,
+        std::string const & fileName )
     {
         adios2::Variable< T > var = m_impl->verifyDataset< T >(
             bp.param.offset, bp.param.extent, IO, bp.name );
-        if ( !var )
+        if( !var )
         {
             throw std::runtime_error(
-                "[ADIOS2] Failed retrieving ADIOS2 Variable with name '" + bp.name +
-                "' from file " + fileName + "." );
+                "[ADIOS2] Failed retrieving ADIOS2 Variable with name '" +
+                bp.name + "' from file " + fileName + "." );
         }
-        auto ptr = std::static_pointer_cast< T >( bp.param.data ).get( );
+        auto ptr = std::static_pointer_cast< T >( bp.param.data ).get();
         engine.Get( var, ptr );
     }
 
     template< typename T >
-    Datatype
-    OldAttributeReader::operator()(
+    Datatype OldAttributeReader::operator()(
         adios2::IO & IO,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
@@ -1281,9 +1270,9 @@ namespace detail
          */
         using rep = AttributeTypes< bool >::rep;
         if
-#    if __cplusplus > 201402L
+#if __cplusplus > 201402L
             constexpr
-#    endif
+#endif
             ( std::is_same< T, rep >::value )
         {
             std::string metaAttr =
@@ -1314,8 +1303,7 @@ namespace detail
     }
 
     template< int n, typename... Params >
-    Datatype
-    OldAttributeReader::operator()( Params &&... )
+    Datatype OldAttributeReader::operator()( Params &&... )
     {
         throw std::runtime_error(
             "[ADIOS2] Internal error: Unknown datatype while "
@@ -1323,8 +1311,7 @@ namespace detail
     }
 
     template< typename T >
-    Datatype
-    AttributeReader::operator()(
+    Datatype AttributeReader::operator()(
         adios2::IO & IO,
         detail::PreloadAdiosAttributes const & preloadedAttributes,
         std::string name,
@@ -1335,12 +1322,12 @@ namespace detail
          * attribute prefixed with '__is_boolean__' to indicate this information
          * that would otherwise be lost. Check whether this has been done.
          */
-        using rep = AttributeTypes<bool>::rep;
+        using rep = AttributeTypes< bool >::rep;
         if
 #if __cplusplus >= 201703L
-        constexpr
+            constexpr
 #endif
-        ( std::is_same< T, rep >::value )
+            ( std::is_same< T, rep >::value )
         {
             std::string metaAttr =
                 ADIOS2Defaults::str_isBooleanNewLayout + name;
@@ -1357,7 +1344,7 @@ namespace detail
             if( type == determineDatatype< rep >() )
             {
                 auto attr = IO.InquireAttribute< rep >( metaAttr );
-                if (attr.Data().size() == 1 && attr.Data()[0] == 1)
+                if( attr.Data().size() == 1 && attr.Data()[ 0 ] == 1 )
                 {
                     AttributeTypes< bool >::readAttribute(
                         preloadedAttributes, name, resource );
@@ -1370,23 +1357,23 @@ namespace detail
         return determineDatatype< T >();
     }
 
-    template < int n, typename... Params >
-    Datatype AttributeReader::operator( )( Params &&... )
+    template< int n, typename... Params >
+    Datatype AttributeReader::operator()( Params &&... )
     {
-        throw std::runtime_error( "[ADIOS2] Internal error: Unknown datatype while "
-                                  "trying to read an attribute." );
+        throw std::runtime_error(
+            "[ADIOS2] Internal error: Unknown datatype while "
+            "trying to read an attribute." );
     }
 
     template< typename T >
-    void
-    OldAttributeWriter::operator()(
+    void OldAttributeWriter::operator()(
         ADIOS2IOHandlerImpl * impl,
         Writable * writable,
         const Parameter< Operation::WRITE_ATT > & parameters )
     {
-        VERIFY_ALWAYS( impl->m_handler->m_backendAccess !=
-                           Access::READ_ONLY,
-                       "[ADIOS2] Cannot write attribute in read-only mode." );
+        VERIFY_ALWAYS(
+            impl->m_handler->m_backendAccess != Access::READ_ONLY,
+            "[ADIOS2] Cannot write attribute in read-only mode." );
         auto pos = impl->setAndGetFilePosition( writable );
         auto file = impl->refreshFileFromParent( writable );
         auto fullName = impl->nameOfAttribute( writable, parameters.name );
@@ -1398,7 +1385,7 @@ namespace detail
         impl->m_dirty.emplace( std::move( file ) );
 
         std::string t = IO.AttributeType( fullName );
-        if ( !t.empty( ) ) // an attribute is present <=> it has a type
+        if( !t.empty() ) // an attribute is present <=> it has a type
         {
             // don't overwrite attributes if they are equivalent
             // overwriting is only legal within the same step
@@ -1436,8 +1423,7 @@ namespace detail
     }
 
     template< int n, typename... Params >
-    void
-    OldAttributeWriter::operator()( Params &&... )
+    void OldAttributeWriter::operator()( Params &&... )
     {
         throw std::runtime_error(
             "[ADIOS2] Internal error: Unknown datatype while "
@@ -1445,10 +1431,8 @@ namespace detail
     }
 
     template< typename T >
-    void
-    AttributeWriter::operator()(
-        detail::BufferedAttributeWrite & params,
-        BufferedActions & fileData )
+    void AttributeWriter::operator()(
+        detail::BufferedAttributeWrite & params, BufferedActions & fileData )
     {
         AttributeTypes< T >::createAttribute(
             fileData.m_IO,
@@ -1457,54 +1441,59 @@ namespace detail
             variantSrc::get< T >( params.resource ) );
     }
 
-    template < int n, typename... Params >
-    void AttributeWriter::operator( )( Params &&... )
+    template< int n, typename... Params >
+    void AttributeWriter::operator()( Params &&... )
     {
-        throw std::runtime_error( "[ADIOS2] Internal error: Unknown datatype while "
-                                  "trying to write an attribute." );
+        throw std::runtime_error(
+            "[ADIOS2] Internal error: Unknown datatype while "
+            "trying to write an attribute." );
     }
 
-    DatasetOpener::DatasetOpener( ADIOS2IOHandlerImpl * impl ) : m_impl{impl}
+    DatasetOpener::DatasetOpener( ADIOS2IOHandlerImpl * impl ) : m_impl{ impl }
     {
     }
 
-    template < typename T >
-    void DatasetOpener::
-    operator( )( InvalidatableFile file, const std::string & varName,
-                 Parameter< Operation::OPEN_DATASET > & parameters )
+    template< typename T >
+    void DatasetOpener::operator()(
+        InvalidatableFile file,
+        const std::string & varName,
+        Parameter< Operation::OPEN_DATASET > & parameters )
     {
         auto & fileData = m_impl->getFileData( file );
         fileData.requireActiveStep();
         auto & IO = fileData.m_IO;
         adios2::Variable< T > var = IO.InquireVariable< T >( varName );
-        if ( !var )
+        if( !var )
         {
             throw std::runtime_error(
-                "[ADIOS2] Failed retrieving ADIOS2 Variable with name '" + varName +
-                "' from file " + *file + "." );
+                "[ADIOS2] Failed retrieving ADIOS2 Variable with name '" +
+                varName + "' from file " + *file + "." );
         }
 
         // cast from adios2::Dims to openPMD::Extent
         auto const shape = var.Shape();
         parameters.extent->clear();
         parameters.extent->reserve( shape.size() );
-        std::copy( shape.begin(), shape.end(), std::back_inserter(*parameters.extent) );
+        std::copy(
+            shape.begin(),
+            shape.end(),
+            std::back_inserter( *parameters.extent ) );
     }
 
     WriteDataset::WriteDataset( ADIOS2IOHandlerImpl * handlerImpl )
-    : m_handlerImpl{handlerImpl}
+        : m_handlerImpl{ handlerImpl }
     {
     }
 
-    template < typename T >
-    void WriteDataset::operator( )( detail::BufferedPut & bp, adios2::IO & IO,
-                                    adios2::Engine & engine )
+    template< typename T >
+    void WriteDataset::operator()(
+        detail::BufferedPut & bp, adios2::IO & IO, adios2::Engine & engine )
     {
-        VERIFY_ALWAYS( m_handlerImpl->m_handler->m_backendAccess !=
-                           Access::READ_ONLY,
-                       "[ADIOS2] Cannot write data in read-only mode." );
+        VERIFY_ALWAYS(
+            m_handlerImpl->m_handler->m_backendAccess != Access::READ_ONLY,
+            "[ADIOS2] Cannot write data in read-only mode." );
 
-        auto ptr = std::static_pointer_cast< const T >( bp.param.data ).get( );
+        auto ptr = std::static_pointer_cast< const T >( bp.param.data ).get();
 
         adios2::Variable< T > var = m_handlerImpl->verifyDataset< T >(
             bp.param.offset, bp.param.extent, IO, bp.name );
@@ -1512,14 +1501,14 @@ namespace detail
         engine.Put( var, ptr );
     }
 
-    template < int n, typename... Params >
-    void WriteDataset::operator( )( Params &&... )
+    template< int n, typename... Params >
+    void WriteDataset::operator()( Params &&... )
     {
         throw std::runtime_error( "[ADIOS2] WRITE_DATASET: Invalid datatype." );
     }
 
-    template < typename T >
-    void VariableDefiner::operator( )(
+    template< typename T >
+    void VariableDefiner::operator()(
         adios2::IO & IO,
         std::string const & name,
         std::vector< ADIOS2IOHandlerImpl::ParameterizedOperator > const &
@@ -1552,7 +1541,8 @@ namespace detail
         if( !var )
         {
             throw std::runtime_error(
-                "[ADIOS2] Internal error: Could not create Variable '" + name + "'." );
+                "[ADIOS2] Internal error: Could not create Variable '" + name +
+                "'." );
         }
         for( auto const & compression : compressions )
         {
@@ -1563,12 +1553,12 @@ namespace detail
         }
     }
 
-    template < typename T >
-    void RetrieveBlocksInfo::operator( )(
-            Parameter< Operation::AVAILABLE_CHUNKS > & params,
-            adios2::IO & IO,
-            adios2::Engine & engine,
-            std::string const & varName )
+    template< typename T >
+    void RetrieveBlocksInfo::operator()(
+        Parameter< Operation::AVAILABLE_CHUNKS > & params,
+        adios2::IO & IO,
+        adios2::Engine & engine,
+        std::string const & varName )
     {
         auto var = IO.InquireVariable< T >( varName );
         auto blocksInfo = engine.BlocksInfo< T >( var, engine.CurrentStep() );
@@ -1591,18 +1581,15 @@ namespace detail
         }
     }
 
-    template < int n, typename... Args >
-    void RetrieveBlocksInfo::operator( )( Args&&... )
+    template< int n, typename... Args >
+    void RetrieveBlocksInfo::operator()( Args &&... )
     {
         // variable has not been found, so we don't fill in any blocks
     }
 
     template< typename T >
-    void
-    AttributeTypes< T >::oldCreateAttribute(
-        adios2::IO & IO,
-        std::string name,
-        const T value )
+    void AttributeTypes< T >::oldCreateAttribute(
+        adios2::IO & IO, std::string name, const T value )
     {
         auto attr = IO.DefineAttribute( name, value );
         if( !attr )
@@ -1614,14 +1601,13 @@ namespace detail
     }
 
     template< typename T >
-    void
-    AttributeTypes< T >::oldReadAttribute(
+    void AttributeTypes< T >::oldReadAttribute(
         adios2::IO & IO,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
     {
         auto attr = IO.InquireAttribute< T >( name );
-        if ( !attr )
+        if( !attr )
         {
             throw std::runtime_error(
                 "[ADIOS2] Internal error: Failed reading attribute '" + name +
@@ -1631,8 +1617,7 @@ namespace detail
     }
 
     template< typename T >
-    void
-    AttributeTypes< T >::createAttribute(
+    void AttributeTypes< T >::createAttribute(
         adios2::IO & IO,
         adios2::Engine & engine,
         detail::BufferedAttributeWrite & params,
@@ -1656,8 +1641,7 @@ namespace detail
     }
 
     template< typename T >
-    void
-    AttributeTypes< T >::readAttribute(
+    void AttributeTypes< T >::readAttribute(
         detail::PreloadAdiosAttributes const & preloadedAttributes,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
@@ -1675,11 +1659,8 @@ namespace detail
     }
 
     template< typename T >
-    void
-    AttributeTypes< std::vector< T > >::oldCreateAttribute(
-        adios2::IO & IO,
-        std::string name,
-        const std::vector< T > & value )
+    void AttributeTypes< std::vector< T > >::oldCreateAttribute(
+        adios2::IO & IO, std::string name, const std::vector< T > & value )
     {
         auto attr = IO.DefineAttribute( name, value.data(), value.size() );
         if( !attr )
@@ -1691,24 +1672,23 @@ namespace detail
     }
 
     template< typename T >
-    void
-    AttributeTypes< std::vector< T > >::oldReadAttribute(
+    void AttributeTypes< std::vector< T > >::oldReadAttribute(
         adios2::IO & IO,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
     {
         auto attr = IO.InquireAttribute< T >( name );
-        if ( !attr )
+        if( !attr )
         {
             throw std::runtime_error(
-                "[ADIOS2] Internal error: Failed reading attribute '" + name + "'." );
+                "[ADIOS2] Internal error: Failed reading attribute '" + name +
+                "'." );
         }
         *resource = attr.Data();
     }
 
-    template < typename T >
-    void
-    AttributeTypes< std::vector< T > >::createAttribute(
+    template< typename T >
+    void AttributeTypes< std::vector< T > >::createAttribute(
         adios2::IO & IO,
         adios2::Engine & engine,
         detail::BufferedAttributeWrite & params,
@@ -1732,8 +1712,7 @@ namespace detail
     }
 
     template< typename T >
-    void
-    AttributeTypes< std::vector< T > >::readAttribute(
+    void AttributeTypes< std::vector< T > >::readAttribute(
         detail::PreloadAdiosAttributes const & preloadedAttributes,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
@@ -1750,8 +1729,7 @@ namespace detail
         *resource = std::move( res );
     }
 
-    void
-    AttributeTypes< std::vector< std::string > >::oldCreateAttribute(
+    void AttributeTypes< std::vector< std::string > >::oldCreateAttribute(
         adios2::IO & IO,
         std::string name,
         const std::vector< std::string > & value )
@@ -1765,14 +1743,13 @@ namespace detail
         }
     }
 
-    void
-    AttributeTypes< std::vector< std::string > >::oldReadAttribute(
+    void AttributeTypes< std::vector< std::string > >::oldReadAttribute(
         adios2::IO & IO,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
     {
         auto attr = IO.InquireAttribute< std::string >( name );
-        if ( !attr )
+        if( !attr )
         {
             throw std::runtime_error(
                 "[ADIOS2] Internal error: Failed reading attribute '" + name +
@@ -1781,8 +1758,7 @@ namespace detail
         *resource = attr.Data();
     }
 
-    void
-    AttributeTypes< std::vector< std::string > >::createAttribute(
+    void AttributeTypes< std::vector< std::string > >::createAttribute(
         adios2::IO & IO,
         adios2::Engine & engine,
         detail::BufferedAttributeWrite & params,
@@ -1827,8 +1803,7 @@ namespace detail
             attr, params.bufferForVecString.data(), adios2::Mode::Deferred );
     }
 
-    void
-    AttributeTypes< std::vector< std::string > >::readAttribute(
+    void AttributeTypes< std::vector< std::string > >::readAttribute(
         detail::PreloadAdiosAttributes const & preloadedAttributes,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
@@ -1836,75 +1811,74 @@ namespace detail
         /*
          * char_type parameter only for specifying the "template" type.
          */
-        auto loadFromDatatype =
-            [ &preloadedAttributes, &name, &resource ]( auto char_type ) {
-                using char_t = decltype( char_type );
-                detail::AttributeWithShape< char_t > attr =
-                    preloadedAttributes.getAttribute< char_t >( name );
-                if( attr.shape.size() != 2 )
-                {
-                    throw std::runtime_error(
-                        "[ADIOS2] Expecting 2D ADIOS variable" );
-                }
-                char_t const * loadedData = attr.data;
-                size_t height = attr.shape[ 0 ];
-                size_t width = attr.shape[ 1 ];
+        auto loadFromDatatype = [ &preloadedAttributes, &name, &resource ](
+                                    auto char_type ) {
+            using char_t = decltype( char_type );
+            detail::AttributeWithShape< char_t > attr =
+                preloadedAttributes.getAttribute< char_t >( name );
+            if( attr.shape.size() != 2 )
+            {
+                throw std::runtime_error(
+                    "[ADIOS2] Expecting 2D ADIOS variable" );
+            }
+            char_t const * loadedData = attr.data;
+            size_t height = attr.shape[ 0 ];
+            size_t width = attr.shape[ 1 ];
 
-                std::vector< std::string > res( height );
-                if( std::is_signed< char >::value ==
-                    std::is_signed< char_t >::value )
+            std::vector< std::string > res( height );
+            if( std::is_signed< char >::value ==
+                std::is_signed< char_t >::value )
+            {
+                /*
+                 * This branch is chosen if the signedness of the
+                 * ADIOS variable corresponds with the signedness of the
+                 * char type on the current platform.
+                 * In this case, the C++ standard guarantees that the
+                 * representations for char and (un)signed char are
+                 * identical, reinterpret_cast-ing the loadedData to
+                 * char in order to construct our strings will be fine.
+                 */
+                for( size_t i = 0; i < height; ++i )
                 {
-                    /*
-                     * This branch is chosen if the signedness of the
-                     * ADIOS variable corresponds with the signedness of the
-                     * char type on the current platform.
-                     * In this case, the C++ standard guarantees that the
-                     * representations for char and (un)signed char are
-                     * identical, reinterpret_cast-ing the loadedData to
-                     * char in order to construct our strings will be fine.
-                     */
-                    for( size_t i = 0; i < height; ++i )
+                    size_t start = i * width;
+                    char const * start_ptr =
+                        reinterpret_cast< char const * >( loadedData + start );
+                    size_t j = 0;
+                    while( j < width && start_ptr[ j ] != 0 )
                     {
-                        size_t start = i * width;
-                        char const * start_ptr =
-                            reinterpret_cast< char const * >(
-                                loadedData + start );
-                        size_t j = 0;
-                        while( j < width && start_ptr[ j ] != 0 )
-                        {
-                            ++j;
-                        }
-                        std::string & str = res[ i ];
-                        str.append( start_ptr, start_ptr + j );
+                        ++j;
                     }
+                    std::string & str = res[ i ];
+                    str.append( start_ptr, start_ptr + j );
                 }
-                else
+            }
+            else
+            {
+                /*
+                 * This branch is chosen if the signedness of the
+                 * ADIOS variable is different from the signedness of the
+                 * char type on the current platform.
+                 * In this case, we play it safe, and explicitly convert
+                 * the loadedData to char pointwise.
+                 */
+                std::vector< char > converted( width );
+                for( size_t i = 0; i < height; ++i )
                 {
-                    /*
-                     * This branch is chosen if the signedness of the
-                     * ADIOS variable is different from the signedness of the
-                     * char type on the current platform.
-                     * In this case, we play it safe, and explicitly convert
-                     * the loadedData to char pointwise.
-                     */
-                    std::vector< char > converted( width );
-                    for( size_t i = 0; i < height; ++i )
+                    size_t start = i * width;
+                    auto const * start_ptr = loadedData + start;
+                    size_t j = 0;
+                    while( j < width && start_ptr[ j ] != 0 )
                     {
-                        size_t start = i * width;
-                        auto const * start_ptr = loadedData + start;
-                        size_t j = 0;
-                        while( j < width && start_ptr[ j ] != 0 )
-                        {
-                            converted[ j ] = start_ptr[ j ];
-                            ++j;
-                        }
-                        std::string & str = res[ i ];
-                        str.append( converted.data(), converted.data() + j );
+                        converted[ j ] = start_ptr[ j ];
+                        ++j;
                     }
+                    std::string & str = res[ i ];
+                    str.append( converted.data(), converted.data() + j );
                 }
+            }
 
-                *resource = res;
-            };
+            *resource = res;
+        };
         /*
          * If writing char variables in ADIOS2, they might become either int8_t
          * or uint8_t on disk depending on the platform.
@@ -1937,11 +1911,8 @@ namespace detail
     }
 
     template< typename T, size_t n >
-    void
-    AttributeTypes< std::array< T, n > >::oldCreateAttribute(
-        adios2::IO & IO,
-        std::string name,
-        const std::array< T, n > & value )
+    void AttributeTypes< std::array< T, n > >::oldCreateAttribute(
+        adios2::IO & IO, std::string name, const std::array< T, n > & value )
     {
         auto attr = IO.DefineAttribute( name, value.data(), n );
         if( !attr )
@@ -1953,30 +1924,29 @@ namespace detail
     }
 
     template< typename T, size_t n >
-    void
-    AttributeTypes< std::array< T, n > >::oldReadAttribute(
+    void AttributeTypes< std::array< T, n > >::oldReadAttribute(
         adios2::IO & IO,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
     {
         auto attr = IO.InquireAttribute< T >( name );
-        if ( !attr )
+        if( !attr )
         {
             throw std::runtime_error(
-                "[ADIOS2] Internal error: Failed reading attribute '" + name + "'." );
+                "[ADIOS2] Internal error: Failed reading attribute '" + name +
+                "'." );
         }
-        auto data = attr.Data( );
+        auto data = attr.Data();
         std::array< T, n > res;
-        for ( size_t i = 0; i < n; i++ )
+        for( size_t i = 0; i < n; i++ )
         {
-            res[i] = data[i];
+            res[ i ] = data[ i ];
         }
         *resource = res;
     }
 
     template< typename T, size_t n >
-    void
-    AttributeTypes< std::array< T, n > >::createAttribute(
+    void AttributeTypes< std::array< T, n > >::createAttribute(
         adios2::IO & IO,
         adios2::Engine & engine,
         detail::BufferedAttributeWrite & params,
@@ -1998,8 +1968,7 @@ namespace detail
     }
 
     template< typename T, size_t n >
-    void
-    AttributeTypes< std::array< T, n > >::readAttribute(
+    void AttributeTypes< std::array< T, n > >::readAttribute(
         detail::PreloadAdiosAttributes const & preloadedAttributes,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
@@ -2018,11 +1987,8 @@ namespace detail
         *resource = std::move( res );
     }
 
-    void
-    AttributeTypes< bool >::oldCreateAttribute(
-        adios2::IO & IO,
-        std::string name,
-        const bool value )
+    void AttributeTypes< bool >::oldCreateAttribute(
+        adios2::IO & IO, std::string name, const bool value )
     {
         IO.DefineAttribute< bool_representation >(
             ADIOS2Defaults::str_isBooleanOldLayout + name, 1 );
@@ -2030,14 +1996,13 @@ namespace detail
             IO, name, toRep( value ) );
     }
 
-    void
-    AttributeTypes< bool >::oldReadAttribute(
+    void AttributeTypes< bool >::oldReadAttribute(
         adios2::IO & IO,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
     {
         auto attr = IO.InquireAttribute< rep >( name );
-        if ( !attr )
+        if( !attr )
         {
             throw std::runtime_error(
                 "[ADIOS2] Internal error: Failed reading attribute '" + name +
@@ -2046,9 +2011,7 @@ namespace detail
         *resource = fromRep( attr.Data()[ 0 ] );
     }
 
-
-    void
-    AttributeTypes< bool >::createAttribute(
+    void AttributeTypes< bool >::createAttribute(
         adios2::IO & IO,
         adios2::Engine & engine,
         detail::BufferedAttributeWrite & params,
@@ -2060,8 +2023,7 @@ namespace detail
             IO, engine, params, toRep( value ) );
     }
 
-    void
-    AttributeTypes< bool >::readAttribute(
+    void AttributeTypes< bool >::readAttribute(
         detail::PreloadAdiosAttributes const & preloadedAttributes,
         std::string name,
         std::shared_ptr< Attribute::resource > resource )
@@ -2090,15 +2052,13 @@ namespace detail
             ba.m_file );
     }
 
-    void
-    BufferedPut::run( BufferedActions & ba )
+    void BufferedPut::run( BufferedActions & ba )
     {
         switchAdios2VariableType(
             param.dtype, ba.m_writeDataset, *this, ba.m_IO, ba.getEngine() );
     }
 
-    void
-    OldBufferedAttributeRead::run( BufferedActions & ba )
+    void OldBufferedAttributeRead::run( BufferedActions & ba )
     {
         auto type = attributeInfo( ba.m_IO, name, /* verbose = */ true );
 
@@ -2114,8 +2074,7 @@ namespace detail
         *param.dtype = ret;
     }
 
-    void
-    BufferedAttributeRead::run( BufferedActions & ba )
+    void BufferedAttributeRead::run( BufferedActions & ba )
     {
         auto type = attributeInfo(
             ba.m_IO,
@@ -2140,8 +2099,7 @@ namespace detail
         *param.dtype = ret;
     }
 
-    void
-    BufferedAttributeWrite::run( BufferedActions & fileData )
+    void BufferedAttributeWrite::run( BufferedActions & fileData )
     {
         switchType( dtype, detail::AttributeWriter(), *this, fileData );
     }
@@ -2162,12 +2120,13 @@ namespace detail
         if( !m_IO )
         {
             throw std::runtime_error(
-                "[ADIOS2] Internal error: Failed declaring ADIOS2 IO object for file " +
+                "[ADIOS2] Internal error: Failed declaring ADIOS2 IO object "
+                "for file " +
                 m_file );
         }
         else
         {
-            configure_IO(impl);
+            configure_IO( impl );
         }
     }
 
@@ -2217,16 +2176,13 @@ namespace detail
         finalized = true;
     }
 
-    void
-    BufferedActions::configure_IO( ADIOS2IOHandlerImpl & impl )
+    void BufferedActions::configure_IO( ADIOS2IOHandlerImpl & impl )
     {
         ( void )impl;
         static std::set< std::string > streamingEngines = {
-            "sst", "insitumpi", "inline", "staging", "nullcore", "ssc"
-        };
+            "sst", "insitumpi", "inline", "staging", "nullcore", "ssc" };
         static std::set< std::string > fileEngines = {
-            "bp4", "bp3", "hdf5", "file"
-        };
+            "bp4", "bp3", "hdf5", "file" };
 
         // step/variable-based iteration encoding requires the new schema
         if( m_impl->m_iterationEncoding == IterationEncoding::variableBased )
@@ -2345,7 +2301,7 @@ namespace detail
                       << shadow << std::endl;
         }
         auto notYetConfigured =
-            [&alreadyConfigured]( std::string const & param ) {
+            [ &alreadyConfigured ]( std::string const & param ) {
                 auto it = alreadyConfigured.find( param );
                 return it == alreadyConfigured.end();
             };
@@ -2387,17 +2343,18 @@ namespace detail
                     "SubStreams", std::to_string( num_substreams ) );
             }
         }
-#    endif
+#endif
         if( notYetConfigured( "StatsLevel" ) )
         {
             /*
              * Switch those off by default since they are expensive to compute
-             * and to enable it, set the JSON option "StatsLevel" or the environment
-             * variable "OPENPMD_ADIOS2_STATS_LEVEL" be positive.
+             * and to enable it, set the JSON option "StatsLevel" or the
+             * environment variable "OPENPMD_ADIOS2_STATS_LEVEL" be positive.
              * The ADIOS2 default was "1" (on).
              */
-             auto stats_level = auxiliary::getEnvNum( "OPENPMD_ADIOS2_STATS_LEVEL", 0 );
-             m_IO.SetParameter( "StatsLevel", std::to_string( stats_level ) );
+            auto stats_level =
+                auxiliary::getEnvNum( "OPENPMD_ADIOS2_STATS_LEVEL", 0 );
+            m_IO.SetParameter( "StatsLevel", std::to_string( stats_level ) );
         }
         if( m_engineType == "sst" && notYetConfigured( "QueueLimit" ) )
         {
@@ -2481,7 +2438,7 @@ namespace detail
                             {
                                 throw std::runtime_error(
                                     "[ADIOS2] Unexpected step status when "
-                                    "opening file/stream.");
+                                    "opening file/stream." );
                             }
                             streamStatus = StreamStatus::DuringStep;
                         }
@@ -2497,7 +2454,7 @@ namespace detail
                     {
                         throw std::runtime_error(
                             "[ADIOS2] Unexpected step status when "
-                            "opening file/stream.");
+                            "opening file/stream." );
                     }
                     m_impl->m_schema = layoutVersion();
                     streamStatus = StreamStatus::DuringStep;
@@ -2524,7 +2481,7 @@ namespace detail
         return m_engine.get();
     }
 
-    adios2::Engine & BufferedActions::requireActiveStep( )
+    adios2::Engine & BufferedActions::requireActiveStep()
     {
         adios2::Engine & eng = getEngine();
         if( streamStatus == StreamStatus::OutsideOfStep )
@@ -2540,14 +2497,14 @@ namespace detail
         return eng;
     }
 
-    template < typename BA > void BufferedActions::enqueue( BA && ba )
+    template< typename BA >
+    void BufferedActions::enqueue( BA && ba )
     {
         enqueue< BA >( std::forward< BA >( ba ), m_buffer );
     }
 
-    template < typename BA > void BufferedActions::enqueue(
-        BA && ba,
-        decltype( m_buffer ) & buffer )
+    template< typename BA >
+    void BufferedActions::enqueue( BA && ba, decltype( m_buffer ) & buffer )
     {
         using _BA = typename std::remove_reference< BA >::type;
         buffer.emplace_back( std::unique_ptr< BufferedAction >(
@@ -2555,8 +2512,7 @@ namespace detail
     }
 
     template< typename F >
-    void
-    BufferedActions::flush(
+    void BufferedActions::flush(
         FlushLevel level,
         F && performPutGets,
         bool writeAttributes,
@@ -2612,79 +2568,77 @@ namespace detail
 
         switch( level )
         {
-            case FlushLevel::UserFlush:
-                performPutGets( *this, eng );
-                m_updateSpans.clear();
-                m_buffer.clear();
-                m_alreadyEnqueued.clear();
-                if( writeAttributes )
-                {
-                    m_attributeWrites.clear();
-                }
+        case FlushLevel::UserFlush:
+            performPutGets( *this, eng );
+            m_updateSpans.clear();
+            m_buffer.clear();
+            m_alreadyEnqueued.clear();
+            if( writeAttributes )
+            {
+                m_attributeWrites.clear();
+            }
 
-                for( BufferedAttributeRead & task : m_attributeReads )
-                {
-                    task.run( *this );
-                }
-                m_attributeReads.clear();
-                break;
+            for( BufferedAttributeRead & task : m_attributeReads )
+            {
+                task.run( *this );
+            }
+            m_attributeReads.clear();
+            break;
 
-            case FlushLevel::InternalFlush:
-            case FlushLevel::SkeletonOnly:
-                /*
-                 * Tasks have been given to ADIOS2, but we don't flush them
-                 * yet. So, move everything to m_alreadyEnqueued to avoid
-                 * use-after-free.
-                 */
-                for( auto & task : m_buffer )
+        case FlushLevel::InternalFlush:
+        case FlushLevel::SkeletonOnly:
+            /*
+             * Tasks have been given to ADIOS2, but we don't flush them
+             * yet. So, move everything to m_alreadyEnqueued to avoid
+             * use-after-free.
+             */
+            for( auto & task : m_buffer )
+            {
+                m_alreadyEnqueued.emplace_back( std::move( task ) );
+            }
+            if( writeAttributes )
+            {
+                for( auto & task : m_attributeWrites )
                 {
-                    m_alreadyEnqueued.emplace_back( std::move( task ) );
+                    m_alreadyEnqueued.emplace_back(
+                        std::unique_ptr< BufferedAction >{
+                            new BufferedAttributeWrite{
+                                std::move( task.second ) } } );
                 }
-                if( writeAttributes )
-                {
-                    for( auto & task : m_attributeWrites )
-                    {
-                        m_alreadyEnqueued.emplace_back(
-                            std::unique_ptr< BufferedAction >{
-                                new BufferedAttributeWrite{
-                                    std::move( task.second ) } } );
-                    }
-                    m_attributeWrites.clear();
-                }
-                m_buffer.clear();
-                break;
+                m_attributeWrites.clear();
+            }
+            m_buffer.clear();
+            break;
         }
     }
 
-    void
-    BufferedActions::flush( FlushLevel level, bool writeAttributes )
+    void BufferedActions::flush( FlushLevel level, bool writeAttributes )
     {
         flush(
             level,
             []( BufferedActions & ba, adios2::Engine & eng ) {
                 switch( ba.m_mode )
                 {
-                    case adios2::Mode::Write:
-                        eng.PerformPuts();
-                        break;
-                    case adios2::Mode::Read:
-                        eng.PerformGets();
-                        break;
-                    case adios2::Mode::Append:
-                        // TODO order?
-                        eng.PerformGets();
-                        eng.PerformPuts();
-                        break;
-                    default:
-                        break;
+                case adios2::Mode::Write:
+                    eng.PerformPuts();
+                    break;
+                case adios2::Mode::Read:
+                    eng.PerformGets();
+                    break;
+                case adios2::Mode::Append:
+                    // TODO order?
+                    eng.PerformGets();
+                    eng.PerformPuts();
+                    break;
+                default:
+                    break;
                 }
             },
             writeAttributes,
             /* flushUnconditionally = */ false );
     }
 
-    AdvanceStatus
-    BufferedActions::advance( AdvanceMode mode )
+    AdvanceStatus BufferedActions::advance( AdvanceMode mode )
     {
         if( streamStatus == StreamStatus::Undecided )
         {
@@ -2704,103 +2658,99 @@ namespace detail
             ADIOS2Defaults::str_usesstepsAttribute, 1 );
         switch( mode )
         {
-            case AdvanceMode::ENDSTEP:
+        case AdvanceMode::ENDSTEP: {
+            /*
+             * Advance mode write:
+             * Close the current step, defer opening the new step
+             * until one is actually needed:
+             * (1) The engine is accessed in BufferedActions::flush
+             * (2) A new step is opened before the currently active step
+             *     has seen an access. See the following lines: open the
+             *     step just to skip it again.
+             */
+            if( streamStatus == StreamStatus::OutsideOfStep )
             {
-                /*
-                 * Advance mode write:
-                 * Close the current step, defer opening the new step
-                 * until one is actually needed:
-                 * (1) The engine is accessed in BufferedActions::flush
-                 * (2) A new step is opened before the currently active step
-                 *     has seen an access. See the following lines: open the
-                 *     step just to skip it again.
-                 */
-                if( streamStatus == StreamStatus::OutsideOfStep )
+                if( getEngine().BeginStep() != adios2::StepStatus::OK )
                 {
-                    if( getEngine().BeginStep() != adios2::StepStatus::OK )
-                    {
-                        throw std::runtime_error(
-                            "[ADIOS2] Trying to close a step that cannot be "
-                            "opened.");
-                    }
+                    throw std::runtime_error(
+                        "[ADIOS2] Trying to close a step that cannot be "
+                        "opened." );
                 }
+            }
+            flush(
+                FlushLevel::UserFlush,
+                []( BufferedActions &, adios2::Engine & eng ) {
+                    eng.EndStep();
+                },
+                /* writeAttributes = */ true,
+                /* flushUnconditionally = */ true );
+            uncommittedAttributes.clear();
+            m_updateSpans.clear();
+            streamStatus = StreamStatus::OutsideOfStep;
+            return AdvanceStatus::OK;
+        }
+        case AdvanceMode::BEGINSTEP: {
+            adios2::StepStatus adiosStatus = m_lastStepStatus;
+
+            // Step might have been opened implicitly already
+            // by requireActiveStep()
+            // In that case, streamStatus is DuringStep and Adios
+            // return status is stored in m_lastStepStatus
+            if( streamStatus != StreamStatus::DuringStep )
+            {
                 flush(
                     FlushLevel::UserFlush,
-                    []( BufferedActions &, adios2::Engine & eng )
-                    { eng.EndStep(); },
-                    /* writeAttributes = */ true,
+                    [ &adiosStatus ](
+                        BufferedActions &, adios2::Engine & engine ) {
+                        adiosStatus = engine.BeginStep();
+                    },
+                    /* writeAttributes = */ false,
                     /* flushUnconditionally = */ true );
-                uncommittedAttributes.clear();
-                m_updateSpans.clear();
-                streamStatus = StreamStatus::OutsideOfStep;
-                return AdvanceStatus::OK;
+                if( adiosStatus == adios2::StepStatus::OK &&
+                    m_mode == adios2::Mode::Read &&
+                    attributeLayout() == AttributeLayout::ByAdiosVariables )
+                {
+                    preloadAttributes.preloadAttributes( m_IO, m_engine.get() );
+                }
             }
-            case AdvanceMode::BEGINSTEP:
+            AdvanceStatus res = AdvanceStatus::OK;
+            switch( adiosStatus )
             {
-                adios2::StepStatus adiosStatus = m_lastStepStatus;
-
-                // Step might have been opened implicitly already
-                // by requireActiveStep()
-                // In that case, streamStatus is DuringStep and Adios
-                // return status is stored in m_lastStepStatus
-                if( streamStatus != StreamStatus::DuringStep )
-                {
-                    flush(
-                        FlushLevel::UserFlush,
-                        [ &adiosStatus ](
-                            BufferedActions &, adios2::Engine & engine ) {
-                            adiosStatus = engine.BeginStep();
-                        },
-                        /* writeAttributes = */ false,
-                        /* flushUnconditionally = */ true );
-                    if( adiosStatus == adios2::StepStatus::OK &&
-                        m_mode == adios2::Mode::Read &&
-                        attributeLayout() == AttributeLayout::ByAdiosVariables )
-                    {
-                        preloadAttributes.preloadAttributes(
-                            m_IO, m_engine.get() );
-                    }
-                }
-                AdvanceStatus res = AdvanceStatus::OK;
-                switch( adiosStatus )
-                {
-                case adios2::StepStatus::EndOfStream:
-                    streamStatus = StreamStatus::StreamOver;
-                    res = AdvanceStatus::OVER;
-                    break;
-                case adios2::StepStatus::OK:
-                    streamStatus = StreamStatus::DuringStep;
-                    res = AdvanceStatus::OK;
-                    break;
-                case adios2::StepStatus::NotReady:
-                case adios2::StepStatus::OtherError:
-                    throw std::runtime_error(
-                        "[ADIOS2] Unexpected step status." );
-                }
-                invalidateAttributesMap();
-                invalidateVariablesMap();
-                return res;
+            case adios2::StepStatus::EndOfStream:
+                streamStatus = StreamStatus::StreamOver;
+                res = AdvanceStatus::OVER;
+                break;
+            case adios2::StepStatus::OK:
+                streamStatus = StreamStatus::DuringStep;
+                res = AdvanceStatus::OK;
+                break;
+            case adios2::StepStatus::NotReady:
+            case adios2::StepStatus::OtherError:
+                throw std::runtime_error( "[ADIOS2] Unexpected step status." );
             }
+            invalidateAttributesMap();
+            invalidateVariablesMap();
+            return res;
+        }
         }
         throw std::runtime_error(
             "Internal error: Advance mode should be explicitly"
             " chosen by the front-end." );
     }
 
-    void BufferedActions::drop( )
+    void BufferedActions::drop()
     {
         m_buffer.clear();
     }
 
-    static std::vector< std::string >
-    availableAttributesOrVariablesPrefixed(
+    static std::vector< std::string > availableAttributesOrVariablesPrefixed(
         std::string const & prefix,
         BufferedActions::AttributeMap_t const & (
             BufferedActions::*getBasicMap )(),
         BufferedActions & ba )
     {
-        std::string var = auxiliary::ends_with( prefix, '/' ) ? prefix
-                                                              : prefix + '/';
+        std::string var =
+            auxiliary::ends_with( prefix, '/' ) ? prefix : prefix + '/';
         BufferedActions::AttributeMap_t const & attributes =
             ( ba.*getBasicMap )();
         std::vector< std::string > ret;
@@ -2824,22 +2774,17 @@ namespace detail
     BufferedActions::availableAttributesPrefixed( std::string const & prefix )
     {
         return availableAttributesOrVariablesPrefixed(
-            prefix,
-            &BufferedActions::availableAttributes,
-            *this );
+            prefix, &BufferedActions::availableAttributes, *this );
     }
 
     std::vector< std::string >
     BufferedActions::availableVariablesPrefixed( std::string const & prefix )
     {
         return availableAttributesOrVariablesPrefixed(
-            prefix,
-            &BufferedActions::availableVariables,
-            *this );
+            prefix, &BufferedActions::availableVariables, *this );
     }
 
-    void
-    BufferedActions::invalidateAttributesMap()
+    void BufferedActions::invalidateAttributesMap()
     {
         m_availableAttributes = auxiliary::Option< AttributeMap_t >();
     }
@@ -2859,8 +2804,7 @@ namespace detail
         }
     }
 
-    void
-    BufferedActions::invalidateVariablesMap()
+    void BufferedActions::invalidateVariablesMap()
     {
         m_availableVariables = auxiliary::Option< AttributeMap_t >();
     }
@@ -2882,7 +2826,7 @@ namespace detail
 
 } // namespace detail
 
-#    if openPMD_HAVE_MPI
+#if openPMD_HAVE_MPI
 
 ADIOS2IOHandler::ADIOS2IOHandler(
     std::string path,
@@ -2907,39 +2851,31 @@ ADIOS2IOHandler::ADIOS2IOHandler(
 {
 }
 
-std::future< void >
-ADIOS2IOHandler::flush()
+std::future< void > ADIOS2IOHandler::flush()
 {
     return m_impl.flush();
 }
 
 #else // openPMD_HAVE_ADIOS2
 
-#    if openPMD_HAVE_MPI
+#if openPMD_HAVE_MPI
 ADIOS2IOHandler::ADIOS2IOHandler(
-    std::string path,
-    Access at,
-    MPI_Comm comm,
-    nlohmann::json,
-    std::string )
+    std::string path, Access at, MPI_Comm comm, nlohmann::json, std::string )
     : AbstractIOHandler( std::move( path ), at, comm )
 {
 }
 
-#    endif // openPMD_HAVE_MPI
+#endif // openPMD_HAVE_MPI
 
 ADIOS2IOHandler::ADIOS2IOHandler(
-    std::string path,
-    Access at,
-    nlohmann::json,
-    std::string )
+    std::string path, Access at, nlohmann::json, std::string )
     : AbstractIOHandler( std::move( path ), at )
 {
 }
 
-std::future< void > ADIOS2IOHandler::flush( )
+std::future< void > ADIOS2IOHandler::flush()
 {
-    return std::future< void >( );
+    return std::future< void >();
 }
 
 #endif
