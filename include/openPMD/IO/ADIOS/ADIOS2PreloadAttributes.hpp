@@ -73,7 +73,7 @@ namespace detail
             adios2::Dims shape;
             size_t offset;
             Datatype dt;
-            char *destroy = nullptr;
+            char * destroy = nullptr;
 
             AttributeLocation() = delete;
             AttributeLocation( adios2::Dims shape, size_t offset, Datatype dt );
@@ -120,8 +120,7 @@ namespace detail
          * @param IO
          * @param engine
          */
-        void
-        preloadAttributes( adios2::IO & IO, adios2::Engine & engine );
+        void preloadAttributes( adios2::IO & IO, adios2::Engine & engine );
 
         /**
          * @brief Get an attribute that has been buffered previously.

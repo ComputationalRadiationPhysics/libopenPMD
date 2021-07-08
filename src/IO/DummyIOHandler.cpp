@@ -23,19 +23,19 @@
 #include <iostream>
 #include <utility>
 
-
 namespace openPMD
 {
-    DummyIOHandler::DummyIOHandler(std::string path, Access at)
-            : AbstractIOHandler(std::move(path), at)
-    { }
+DummyIOHandler::DummyIOHandler( std::string path, Access at )
+    : AbstractIOHandler( std::move( path ), at )
+{
+}
 
-    void DummyIOHandler::enqueue(IOTask const&)
-    { }
+void DummyIOHandler::enqueue( IOTask const & )
+{
+}
 
-    std::future< void >
-    DummyIOHandler::flush()
-    {
-        return std::future< void >();
-    }
+std::future< void > DummyIOHandler::flush()
+{
+    return std::future< void >();
+}
 } // openPMD

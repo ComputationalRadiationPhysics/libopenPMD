@@ -40,31 +40,27 @@ namespace auxiliary
 
     TracingJSON::TracingJSON( nlohmann::json originalJSON )
         : m_originalJSON(
-              std::make_shared< nlohmann::json >( std::move( originalJSON ) ) ),
-          m_shadow( std::make_shared< nlohmann::json >() ),
-          m_positionInOriginal( &*m_originalJSON ),
-          m_positionInShadow( &*m_shadow )
+              std::make_shared< nlohmann::json >( std::move( originalJSON ) ) )
+        , m_shadow( std::make_shared< nlohmann::json >() )
+        , m_positionInOriginal( &*m_originalJSON )
+        , m_positionInShadow( &*m_shadow )
     {
     }
 
-    nlohmann::json const &
-    TracingJSON::getShadow()
+    nlohmann::json const & TracingJSON::getShadow()
     {
         return *m_positionInShadow;
     }
 
-    nlohmann::json
-    TracingJSON::invertShadow()
+    nlohmann::json TracingJSON::invertShadow()
     {
         nlohmann::json inverted = *m_positionInOriginal;
         invertShadow( inverted, *m_positionInShadow );
         return inverted;
     }
 
-    void
-    TracingJSON::invertShadow(
-        nlohmann::json & result,
-        nlohmann::json const & shadow )
+    void TracingJSON::invertShadow(
+        nlohmann::json & result, nlohmann::json const & shadow )
     {
         if( !shadow.is_object() )
         {
@@ -93,8 +89,7 @@ namespace auxiliary
         }
     }
 
-    void
-    TracingJSON::declareFullyRead()
+    void TracingJSON::declareFullyRead()
     {
         if( m_trace )
         {
@@ -109,36 +104,36 @@ namespace auxiliary
         nlohmann::json * positionInOriginal,
         nlohmann::json * positionInShadow,
         bool trace )
-        : m_originalJSON( std::move( originalJSON ) ),
-          m_shadow( std::move( shadow ) ),
-          m_positionInOriginal( positionInOriginal ),
-          m_positionInShadow( positionInShadow ),
-          m_trace( trace )
+        : m_originalJSON( std::move( originalJSON ) )
+        , m_shadow( std::move( shadow ) )
+        , m_positionInOriginal( positionInOriginal )
+        , m_positionInShadow( positionInShadow )
+        , m_trace( trace )
     {
     }
 
-    namespace {
-    auxiliary::Option< std::string >
-    extractFilename( std::string const & unparsed )
+    namespace
     {
-        std::string trimmed = auxiliary::trim(
-            unparsed, []( char c ) { return std::isspace( c ); } );
-        if( trimmed.at( 0 ) == '@' )
+        auxiliary::Option< std::string >
+        extractFilename( std::string const & unparsed )
         {
-            trimmed = trimmed.substr( 1 );
-            trimmed = auxiliary::trim(
-                trimmed, []( char c ) { return std::isspace( c ); } );
-            return auxiliary::makeOption( trimmed );
+            std::string trimmed = auxiliary::trim(
+                unparsed, []( char c ) { return std::isspace( c ); } );
+            if( trimmed.at( 0 ) == '@' )
+            {
+                trimmed = trimmed.substr( 1 );
+                trimmed = auxiliary::trim(
+                    trimmed, []( char c ) { return std::isspace( c ); } );
+                return auxiliary::makeOption( trimmed );
+            }
+            else
+            {
+                return auxiliary::Option< std::string >{};
+            }
         }
-        else
-        {
-            return auxiliary::Option< std::string >{};
-        }
-    }
     }
 
-    nlohmann::json
-    parseOptions( std::string const & options )
+    nlohmann::json parseOptions( std::string const & options )
     {
         auto filename = extractFilename( options );
         if( filename.has_value() )
@@ -162,8 +157,7 @@ namespace auxiliary
     }
 
 #if openPMD_HAVE_MPI
-    nlohmann::json
-    parseOptions( std::string const & options, MPI_Comm comm )
+    nlohmann::json parseOptions( std::string const & options, MPI_Comm comm )
     {
         auto filename = extractFilename( options );
         if( filename.has_value() )

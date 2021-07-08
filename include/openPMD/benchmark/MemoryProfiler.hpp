@@ -25,7 +25,6 @@
 #include <fstream>
 #include <iostream>
 
-
 namespace openPMD
 {
 namespace benchmark
@@ -42,11 +41,11 @@ namespace benchmark
          * @param[in] rank     MPI rank
          * @param[in] tag      item name to measure
          */
-        MemoryProfiler( int rank, const std::string& tag )
-        : m_Rank( rank ), m_Name( "" )
+        MemoryProfiler( int rank, const std::string & tag )
+            : m_Rank( rank ), m_Name( "" )
         {
-#if defined(__linux)
-            //m_Name = "/proc/meminfo";
+#if defined( __linux )
+            // m_Name = "/proc/meminfo";
             m_Name = "/proc/self/status";
             Display( tag );
 #endif
@@ -59,30 +58,33 @@ namespace benchmark
          *
          * @param tag      item name to measure
          */
-        void Display(const std::string& tag){
-            if (0 == m_Name.size())
+        void Display( const std::string & tag )
+        {
+            if( 0 == m_Name.size() )
                 return;
 
-            if (m_Rank > 0)
+            if( m_Rank > 0 )
                 return;
 
-            std::cout<<" memory at:  "<<tag;
-            std::ifstream input(m_Name.c_str());
+            std::cout << " memory at:  " << tag;
+            std::ifstream input( m_Name.c_str() );
 
-            if (input.is_open()) {
-                for (std::string line; getline(input, line);)
+            if( input.is_open() )
+            {
+                for( std::string line; getline( input, line ); )
                 {
-                    if (line.find("VmRSS") == 0)
-                        std::cout<<line<<" ";
-                    if (line.find("VmSize") == 0)
-                        std::cout<<line<<" ";
-                    if (line.find("VmSwap") == 0)
-                        std::cout<<line;
+                    if( line.find( "VmRSS" ) == 0 )
+                        std::cout << line << " ";
+                    if( line.find( "VmSize" ) == 0 )
+                        std::cout << line << " ";
+                    if( line.find( "VmSwap" ) == 0 )
+                        std::cout << line;
                 }
-                std::cout<<std::endl;
+                std::cout << std::endl;
                 input.close();
             }
         }
+
     private:
         int m_Rank;
         std::string m_Name;

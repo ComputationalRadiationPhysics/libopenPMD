@@ -20,59 +20,63 @@
  */
 #include "openPMD/ParticlePatches.hpp"
 
-
 namespace openPMD
 {
 
-size_t
-ParticlePatches::numPatches() const
+size_t ParticlePatches::numPatches() const
 {
     if( this->empty() )
         return 0;
 
-    return this->at("numParticles").at(RecordComponent::SCALAR).getExtent()[0];
+    return this->at( "numParticles" )
+        .at( RecordComponent::SCALAR )
+        .getExtent()[ 0 ];
 }
 
-void
-ParticlePatches::read()
+void ParticlePatches::read()
 {
     Parameter< Operation::LIST_PATHS > pList;
-    IOHandler()->enqueue(IOTask(this, pList));
+    IOHandler()->enqueue( IOTask( this, pList ) );
     IOHandler()->flush();
 
     Parameter< Operation::OPEN_PATH > pOpen;
-    for( auto const& record_name : *pList.paths )
+    for( auto const & record_name : *pList.paths )
     {
-        PatchRecord& pr = (*this)[record_name];
+        PatchRecord & pr = ( *this )[ record_name ];
         pOpen.path = record_name;
-        IOHandler()->enqueue(IOTask(&pr, pOpen));
+        IOHandler()->enqueue( IOTask( &pr, pOpen ) );
         pr.read();
     }
 
     Parameter< Operation::LIST_DATASETS > dList;
-    IOHandler()->enqueue(IOTask(this, dList));
+    IOHandler()->enqueue( IOTask( this, dList ) );
     IOHandler()->flush();
 
     Parameter< Operation::OPEN_DATASET > dOpen;
-    for( auto const& component_name : *dList.datasets )
+    for( auto const & component_name : *dList.datasets )
     {
-        if( !("numParticles" == component_name || "numParticlesOffset" == component_name) )
-            throw std::runtime_error("Unexpected record component" + component_name + "in particlePatch");
+        if( !( "numParticles" == component_name ||
+               "numParticlesOffset" == component_name ) )
+            throw std::runtime_error(
+                "Unexpected record component" + component_name +
+                "in particlePatch" );
 
-        PatchRecord& pr = Container< PatchRecord >::operator[](component_name);
-        PatchRecordComponent& prc = pr[RecordComponent::SCALAR];
+        PatchRecord & pr =
+            Container< PatchRecord >::operator[]( component_name );
+        PatchRecordComponent & prc = pr[ RecordComponent::SCALAR ];
         prc.parent() = pr.parent();
         dOpen.name = component_name;
-        IOHandler()->enqueue(IOTask(&pr, dOpen));
-        IOHandler()->enqueue(IOTask(&prc, dOpen));
+        IOHandler()->enqueue( IOTask( &pr, dOpen ) );
+        IOHandler()->enqueue( IOTask( &prc, dOpen ) );
         IOHandler()->flush();
 
         if( determineDatatype< uint64_t >() != *dOpen.dtype )
-            throw std::runtime_error("Unexpected datatype for " + component_name);
+            throw std::runtime_error(
+                "Unexpected datatype for " + component_name );
 
         /* allow all attributes to be set */
         prc.written() = false;
-        prc.resetDataset(Dataset(*dOpen.dtype, *dOpen.extent));
+        prc.resetDataset( Dataset( *dOpen.dtype, *dOpen.extent ) );
         prc.written() = true;
 
         pr.dirty() = false;

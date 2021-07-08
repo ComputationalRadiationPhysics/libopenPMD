@@ -48,8 +48,7 @@ void span_write( std::string const & filename )
             auto dynamicMemoryView = pos.storeChunk< position_t >(
                 Offset{ 0 },
                 extent,
-                [ &fallbackBuffer, &fallbackBufferIsUsed ]( size_t size )
-                {
+                [ &fallbackBuffer, &fallbackBufferIsUsed ]( size_t size ) {
                     fallbackBufferIsUsed = true;
                     fallbackBuffer.resize( size );
                     return std::shared_ptr< position_t >(

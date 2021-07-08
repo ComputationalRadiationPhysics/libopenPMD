@@ -20,59 +20,55 @@
  */
 #pragma once
 
-#include "openPMD/backend/BaseRecordComponent.hpp"
-#include "openPMD/auxiliary/ShareRaw.hpp"
 #include "openPMD/Dataset.hpp"
+#include "openPMD/auxiliary/ShareRaw.hpp"
+#include "openPMD/backend/BaseRecordComponent.hpp"
 
+#include <array>
 #include <cmath>
-#include <memory>
 #include <limits>
+#include <memory>
 #include <queue>
-#include <string>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <vector>
-#include <array>
 
 // expose private and protected members for invasive testing
 #ifndef OPENPMD_protected
-#   define OPENPMD_protected protected
+#define OPENPMD_protected protected
 #endif
-
 
 namespace openPMD
 {
 namespace traits
 {
-/** Emulate in the C++17 concept ContiguousContainer
- *
- * Users can implement this trait for a type to signal it can be used as
- * contiguous container.
- *
- * See:
- *   https://en.cppreference.com/w/cpp/named_req/ContiguousContainer
- */
-template< typename T >
-struct IsContiguousContainer
-{
-    static constexpr bool value = false;
-};
+    /** Emulate in the C++17 concept ContiguousContainer
+     *
+     * Users can implement this trait for a type to signal it can be used as
+     * contiguous container.
+     *
+     * See:
+     *   https://en.cppreference.com/w/cpp/named_req/ContiguousContainer
+     */
+    template< typename T >
+    struct IsContiguousContainer
+    {
+        static constexpr bool value = false;
+    };
 
-template< typename T_Value >
-struct IsContiguousContainer< std::vector< T_Value > >
-{
-    static constexpr bool value = true;
-};
+    template< typename T_Value >
+    struct IsContiguousContainer< std::vector< T_Value > >
+    {
+        static constexpr bool value = true;
+    };
 
-template<
-    typename T_Value,
-    std::size_t N
->
-struct IsContiguousContainer< std::array< T_Value, N > >
-{
-    static constexpr bool value = true;
-};
+    template< typename T_Value, std::size_t N >
+    struct IsContiguousContainer< std::array< T_Value, N > >
+    {
+        static constexpr bool value = true;
+    };
 } // namespace traits
 
 template< typename T >
@@ -80,11 +76,7 @@ class DynamicMemoryView;
 
 class RecordComponent : public BaseRecordComponent
 {
-    template<
-            typename T,
-            typename T_key,
-            typename T_container
-    >
+    template< typename T, typename T_key, typename T_container >
     friend class Container;
     friend class Iteration;
     friend class ParticleSpecies;
@@ -103,7 +95,7 @@ public:
         AUTO
     }; // Allocation
 
-    RecordComponent& setUnitSI(double);
+    RecordComponent & setUnitSI( double );
 
     /**
      * @brief Declare the dataset's type and extent.
@@ -138,7 +130,7 @@ public:
      * @return A reference to this RecordComponent.
      */
     template< typename T >
-    RecordComponent& makeConstant(T);
+    RecordComponent & makeConstant( T );
 
     /** Create a dataset with zero extent in each dimension.
      *
@@ -149,7 +141,7 @@ public:
      * @return A reference to this RecordComponent.
      */
     template< typename T >
-    RecordComponent& makeEmpty( uint8_t dimensions );
+    RecordComponent & makeEmpty( uint8_t dimensions );
 
     /**
      * @brief Non-template overload of RecordComponent::makeEmpty().
@@ -159,7 +151,7 @@ public:
      * @param dimensions The dimensionality of the dataset.
      * @return RecordComponent&
      */
-    RecordComponent& makeEmpty( Datatype dt, uint8_t dimensions );
+    RecordComponent & makeEmpty( Datatype dt, uint8_t dimensions );
 
     /** Returns true if this is an empty record component
      *
@@ -178,13 +170,12 @@ public:
      * record component will be selected.
      */
     template< typename T >
-    std::shared_ptr< T > loadChunk(
-        Offset = { 0u },
-        Extent = { -1u } );
+    std::shared_ptr< T > loadChunk( Offset = { 0u }, Extent = { -1u } );
 
     /** Load a chunk of data into pre-allocated memory
      *
-     * shared_ptr for data must be pre-allocated, contiguous and large enough for extent
+     * shared_ptr for data must be pre-allocated, contiguous and large enough
+     * for extent
      *
      * Set offset to {0u} and extent to {-1u} for full selection.
      *
@@ -192,19 +183,15 @@ public:
      * record component will be selected.
      */
     template< typename T >
-    void loadChunk(
-        std::shared_ptr< T >,
-        Offset,
-        Extent );
+    void loadChunk( std::shared_ptr< T >, Offset, Extent );
 
     template< typename T >
-    void storeChunk(std::shared_ptr< T >, Offset, Extent);
+    void storeChunk( std::shared_ptr< T >, Offset, Extent );
 
     template< typename T_ContiguousContainer >
     typename std::enable_if<
-        traits::IsContiguousContainer< T_ContiguousContainer >::value
-    >::type
-    storeChunk(T_ContiguousContainer &, Offset = {0u}, Extent = {-1u});
+        traits::IsContiguousContainer< T_ContiguousContainer >::value >::type
+    storeChunk( T_ContiguousContainer &, Offset = { 0u }, Extent = { -1u } );
 
     /**
      * @brief Overload of storeChunk() that lets the openPMD API allocate
@@ -250,8 +237,7 @@ public:
 
     virtual ~RecordComponent() = default;
 
-OPENPMD_protected:
-    RecordComponent();
+    OPENPMD_protected : RecordComponent();
 
     void readBase();
 
@@ -264,7 +250,7 @@ OPENPMD_protected:
         std::make_shared< bool >( false );
 
 private:
-    void flush(std::string const&);
+    void flush( std::string const & );
     virtual void read();
 
     /**
@@ -273,7 +259,7 @@ private:
      * @param d The dataset description. Must have nonzero dimensions.
      * @return Reference to this RecordComponent instance.
      */
-    RecordComponent& makeEmpty( Dataset d );
+    RecordComponent & makeEmpty( Dataset d );
 
     /**
      * @brief Check recursively whether this RecordComponent is dirty.
@@ -286,7 +272,6 @@ private:
     bool dirtyRecursive() const;
 
 protected:
-
     /**
      * The same std::string that the parent class would pass as parameter to
      * RecordComponent::flush().

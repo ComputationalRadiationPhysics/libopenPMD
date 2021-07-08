@@ -23,9 +23,8 @@
 
 #include "VariantSrc.hpp"
 
-#include <utility> // std::forward, std::move
 #include <type_traits>
-
+#include <utility> // std::forward, std::move
 
 namespace openPMD
 {
@@ -66,8 +65,7 @@ namespace auxiliary
 
         Option( Option const & other ) = default;
 
-        Option &
-        operator=( Option && other )
+        Option & operator=( Option && other )
         {
             if( other.has_value() )
             {
@@ -80,8 +78,7 @@ namespace auxiliary
             return *this;
         }
 
-        Option &
-        operator=( Option const & other )
+        Option & operator=( Option const & other )
         {
             if( other.has_value() )
             {
@@ -94,8 +91,7 @@ namespace auxiliary
             return *this;
         }
 
-        bool
-        operator==( Option const & other ) const
+        bool operator==( Option const & other ) const
         {
             if( has_value() )
             {
@@ -114,8 +110,7 @@ namespace auxiliary
             }
         }
 
-        bool
-        operator!=( Option const & other ) const
+        bool operator!=( Option const & other ) const
         {
             return !( *this == other );
         }
@@ -123,8 +118,7 @@ namespace auxiliary
         /**
          * @return Is an object constantly stored in this?
          */
-        bool
-        has_value() const
+        bool has_value() const
         {
             return m_data.index() == 0;
         }
@@ -143,8 +137,7 @@ namespace auxiliary
          * @throw std::bad_variant_access if no object is present.
          * @return The emplaced object.
          */
-        T const &
-        get() const
+        T const & get() const
         {
             return variantSrc::template get< T >( m_data );
         }
@@ -155,16 +148,14 @@ namespace auxiliary
          * @throw std::bad_variant_access if no object is present.
          * @return The emplaced object.
          */
-        T &
-        get()
+        T & get()
         {
             return variantSrc::template get< T >( m_data );
         }
     };
 
     template< typename T >
-    Option< typename std::decay< T >::type >
-    makeOption( T && val )
+    Option< typename std::decay< T >::type > makeOption( T && val )
     {
         return Option< typename std::decay< T >::type >(
             std::forward< T >( val ) );

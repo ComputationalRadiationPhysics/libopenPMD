@@ -41,8 +41,7 @@ SeriesIterator::SeriesIterator( Series series )
     }
     else
     {
-        auto openIteration = [ &it ]()
-        {
+        auto openIteration = [ &it ]() {
             /*
              * @todo
              * Is that really clean?

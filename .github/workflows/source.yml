@@ -18,6 +18,15 @@ jobs:
         python3 -m pip install -U flake8
         python3 -m flake8 --exclude=thirdParty .
 
+  clang-format:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: clang-format
+      run: |
+        sudo apt install -y clang-format
+        .github/workflows/source/clang-format
+
   static-analysis:
     runs-on: ubuntu-20.04
     steps:

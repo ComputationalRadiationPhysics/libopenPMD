@@ -24,7 +24,6 @@
 #include "openPMD/auxiliary/Option.hpp"
 #include "openPMD/backend/Container.hpp"
 
-
 namespace openPMD
 {
 class Series;
@@ -50,7 +49,7 @@ class WriteIterations : private Container< Iteration, uint64_t >
 
 private:
     using iterations_t = Container< Iteration, uint64_t >;
-    
+
 public:
     using key_type = typename iterations_t::key_type;
     using mapped_type = typename iterations_t::mapped_type;

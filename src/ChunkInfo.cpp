@@ -22,7 +22,6 @@
 
 #include <utility>
 
-
 namespace openPMD
 {
 ChunkInfo::ChunkInfo( Offset offset_in, Extent extent_in )
@@ -30,16 +29,13 @@ ChunkInfo::ChunkInfo( Offset offset_in, Extent extent_in )
 {
 }
 
-bool
-ChunkInfo::operator==( ChunkInfo const & other ) const
+bool ChunkInfo::operator==( ChunkInfo const & other ) const
 {
     return this->offset == other.offset && this->extent == other.extent;
 }
 
 WrittenChunkInfo::WrittenChunkInfo(
-    Offset offset_in,
-    Extent extent_in,
-    int sourceID_in )
+    Offset offset_in, Extent extent_in, int sourceID_in )
     : ChunkInfo( std::move( offset_in ), std::move( extent_in ) )
     , sourceID( sourceID_in < 0 ? 0 : sourceID_in )
 {
@@ -50,8 +46,7 @@ WrittenChunkInfo::WrittenChunkInfo( Offset offset_in, Extent extent_in )
 {
 }
 
-bool
-WrittenChunkInfo::operator==( WrittenChunkInfo const & other ) const
+bool WrittenChunkInfo::operator==( WrittenChunkInfo const & other ) const
 {
     return this->sourceID == other.sourceID &&
         this->ChunkInfo::operator==( other );

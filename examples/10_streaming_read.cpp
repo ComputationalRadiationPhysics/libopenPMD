@@ -8,8 +8,7 @@
 using std::cout;
 using namespace openPMD;
 
-int
-main()
+int main()
 {
 #if openPMD_HAVE_ADIOS2
     using position_t = double;

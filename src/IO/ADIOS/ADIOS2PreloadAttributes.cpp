@@ -43,32 +43,28 @@ namespace detail
         struct GetAlignment
         {
             template< typename T >
-            constexpr size_t
-            operator()() const
+            constexpr size_t operator()() const
             {
-                return alignof(T);
+                return alignof( T );
             }
 
             template< unsigned long, typename... Args >
-            constexpr size_t
-            operator()( Args &&... ) const
+            constexpr size_t operator()( Args &&... ) const
             {
-                return alignof(std::max_align_t);
+                return alignof( std::max_align_t );
             }
         };
 
         struct GetSize
         {
             template< typename T >
-            constexpr size_t
-            operator()() const
+            constexpr size_t operator()() const
             {
-                return sizeof(T);
+                return sizeof( T );
             }
 
             template< unsigned long, typename... Args >
-            constexpr size_t
-            operator()( Args &&... ) const
+            constexpr size_t operator()( Args &&... ) const
             {
                 return 0;
             }
@@ -77,8 +73,7 @@ namespace detail
         struct ScheduleLoad
         {
             template< typename T >
-            void
-            operator()(
+            void operator()(
                 adios2::IO & IO,
                 adios2::Engine & engine,
                 std::string const & name,
@@ -122,8 +117,7 @@ namespace detail
         struct VariableShape
         {
             template< typename T >
-            adios2::Dims
-            operator()( adios2::IO & IO, std::string const & name )
+            adios2::Dims operator()( adios2::IO & IO, std::string const & name )
             {
                 auto var = IO.InquireVariable< T >( name );
                 if( !var )
@@ -135,8 +129,7 @@ namespace detail
             }
 
             template< unsigned long n, typename... Args >
-            adios2::Dims
-            operator()( Args &&... )
+            adios2::Dims operator()( Args &&... )
             {
                 return {};
             }
@@ -145,9 +138,9 @@ namespace detail
         struct AttributeLocationDestroy
         {
             template< typename T >
-            void operator()( char *ptr, size_t numItems )
+            void operator()( char * ptr, size_t numItems )
             {
-                T *destroy = reinterpret_cast< T * >( ptr );
+                T * destroy = reinterpret_cast< T * >( ptr );
                 for( size_t i = 0; i < numItems; ++i )
                 {
                     destroy[ i ].~T();
@@ -207,10 +200,8 @@ namespace detail
         }
     }
 
-    void
-    PreloadAdiosAttributes::preloadAttributes(
-        adios2::IO & IO,
-        adios2::Engine & engine )
+    void PreloadAdiosAttributes::preloadAttributes(
+        adios2::IO & IO, adios2::Engine & engine )
     {
         m_offsets.clear();
         std::map< Datatype, std::vector< std::string > > attributesByType;
@@ -246,8 +237,8 @@ namespace detail
         VariableShape switchShape;
         for( auto & pair : attributesByType )
         {
-            size_t alignment = switchAdios2AttributeType(
-                pair.first, switchAlignment );
+            size_t alignment =
+                switchAdios2AttributeType( pair.first, switchAlignment );
             size_t size = switchAdios2AttributeType( pair.first, switchSize );
             // go to next offset with valid alignment
             size_t modulus = currentOffset % alignment;
@@ -257,8 +248,8 @@ namespace detail
             }
             for( std::string & name : pair.second )
             {
-                adios2::Dims shape =
-                    switchAdios2AttributeType( pair.first, switchShape, IO, name );
+                adios2::Dims shape = switchAdios2AttributeType(
+                    pair.first, switchShape, IO, name );
                 size_t elements = 1;
                 for( auto extent : shape )
                 {

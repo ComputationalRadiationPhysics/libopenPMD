@@ -26,10 +26,10 @@
 #include <nlohmann/json.hpp>
 
 #if openPMD_HAVE_MPI
-#   include <mpi.h>
+#include <mpi.h>
 #endif
 
-#include <memory>  // std::shared_ptr
+#include <memory> // std::shared_ptr
 #include <utility> // std::forward
 
 namespace openPMD
@@ -60,8 +60,7 @@ namespace auxiliary
          *
          * @return nlohmann::json&
          */
-        inline nlohmann::json &
-        json()
+        inline nlohmann::json & json()
         {
             return *m_positionInOriginal;
         }
@@ -75,8 +74,7 @@ namespace auxiliary
          *
          * @return nlohmann::json const&
          */
-        nlohmann::json const &
-        getShadow();
+        nlohmann::json const & getShadow();
 
         /**
          * @brief Invert the "shadow", i.e. a copy of the original JSON value
@@ -84,15 +82,13 @@ namespace auxiliary
          *
          * @return nlohmann::json
          */
-        nlohmann::json
-        invertShadow();
+        nlohmann::json invertShadow();
 
         /**
          * @brief Declare all keys of the current object read.
          *
          */
-        void
-        declareFullyRead();
+        void declareFullyRead();
 
     private:
         /**

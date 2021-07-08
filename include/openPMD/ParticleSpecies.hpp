@@ -20,13 +20,12 @@
  */
 #pragma once
 
-#include "openPMD/backend/Attributable.hpp"
-#include "openPMD/backend/Container.hpp"
 #include "openPMD/ParticlePatches.hpp"
 #include "openPMD/Record.hpp"
+#include "openPMD/backend/Attributable.hpp"
+#include "openPMD/backend/Container.hpp"
 
 #include <string>
-
 
 namespace openPMD
 {
@@ -44,7 +43,7 @@ private:
     ParticleSpecies();
 
     void read();
-    void flush(std::string const &) override;
+    void flush( std::string const & ) override;
 
     /**
      * @brief Check recursively whether this ParticleSpecies is dirty.
@@ -54,8 +53,7 @@ private:
      * @return true If dirty.
      * @return false Otherwise.
      */
-    bool
-    dirtyRecursive() const;
+    bool dirtyRecursive() const;
 };
 
 namespace traits
@@ -64,17 +62,19 @@ namespace traits
     struct GenerationPolicy< ParticleSpecies >
     {
         template< typename T >
-        void operator()(T & ret)
+        void operator()( T & ret )
         {
-            ret.particlePatches.linkHierarchy(ret.writable());
+            ret.particlePatches.linkHierarchy( ret.writable() );
 
-            auto& np = ret.particlePatches["numParticles"];
-            auto& npc = np[RecordComponent::SCALAR];
-            npc.resetDataset(Dataset(determineDatatype<uint64_t>(), {1}));
+            auto & np = ret.particlePatches[ "numParticles" ];
+            auto & npc = np[ RecordComponent::SCALAR ];
+            npc.resetDataset(
+                Dataset( determineDatatype< uint64_t >(), { 1 } ) );
             npc.parent() = np.parent();
-            auto& npo = ret.particlePatches["numParticlesOffset"];
-            auto& npoc = npo[RecordComponent::SCALAR];
-            npoc.resetDataset(Dataset(determineDatatype<uint64_t>(), {1}));
+            auto & npo = ret.particlePatches[ "numParticlesOffset" ];
+            auto & npoc = npo[ RecordComponent::SCALAR ];
+            npoc.resetDataset(
+                Dataset( determineDatatype< uint64_t >(), { 1 } ) );
             npoc.parent() = npo.parent();
         }
     };

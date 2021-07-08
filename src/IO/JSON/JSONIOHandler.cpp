@@ -21,24 +21,17 @@
 
 #include "openPMD/IO/JSON/JSONIOHandler.hpp"
 
-
 namespace openPMD
 {
-    JSONIOHandler::~JSONIOHandler( ) = default;
+JSONIOHandler::~JSONIOHandler() = default;
 
-    JSONIOHandler::JSONIOHandler(
-        std::string path,
-        Access at
-    ) :
-        AbstractIOHandler {
-            path,
-            at
-        },
-        m_impl { JSONIOHandlerImpl { this } }
-    {}
+JSONIOHandler::JSONIOHandler( std::string path, Access at )
+    : AbstractIOHandler{ path, at }, m_impl{ JSONIOHandlerImpl{ this } }
+{
+}
 
-    std::future< void > JSONIOHandler::flush( )
-    {
-        return m_impl.flush( );
-    }
+std::future< void > JSONIOHandler::flush()
+{
+    return m_impl.flush();
+}
 } // openPMD

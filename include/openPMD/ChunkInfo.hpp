@@ -24,7 +24,6 @@
 
 #include <vector>
 
-
 namespace openPMD
 {
 /**
@@ -43,8 +42,7 @@ struct ChunkInfo
     explicit ChunkInfo() = default;
     ChunkInfo( Offset, Extent );
 
-    bool
-    operator==( ChunkInfo const & other ) const;
+    bool operator==( ChunkInfo const & other ) const;
 };
 
 /**
@@ -71,8 +69,7 @@ struct WrittenChunkInfo : ChunkInfo
     WrittenChunkInfo( Offset, Extent, int sourceID );
     WrittenChunkInfo( Offset, Extent );
 
-    bool
-    operator==( WrittenChunkInfo const & other ) const;
+    bool operator==( WrittenChunkInfo const & other ) const;
 };
 
 using ChunkTable = std::vector< WrittenChunkInfo >;
