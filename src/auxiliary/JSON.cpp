@@ -25,9 +25,12 @@
 #include "openPMD/auxiliary/Option.hpp"
 #include "openPMD/auxiliary/StringManip.hpp"
 
-#include <cctype> // std::isspace
+#include <algorithm>
+#include <cctype> // std::isspace, std::tolower
 #include <fstream>
+#include <map>
 #include <sstream>
+#include <utility> // std::forward
 #include <vector>
 
 namespace openPMD
@@ -153,11 +156,14 @@ namespace auxiliary
                     "Failed reading JSON config from file " + filename.get() +
                     "." );
             }
+            auxiliary::jsonLowerCase( res );
             return res;
         }
         else
         {
-            return nlohmann::json::parse( options );
+            auto res = nlohmann::json::parse( options );
+            auxiliary::jsonLowerCase( res );
+            return res;
         }
     }
 
@@ -168,14 +174,78 @@ namespace auxiliary
         auto filename = extractFilename( options );
         if( filename.has_value() )
         {
-            return nlohmann::json::parse(
+            auto res = nlohmann::json::parse(
                 auxiliary::collective_file_read( filename.get(), comm ) );
+            auxiliary::jsonLowerCase( res );
+            return res;
         }
         else
         {
-            return nlohmann::json::parse( options );
+            auto res = nlohmann::json::parse( options );
+            auxiliary::jsonLowerCase( res );
+            return res;
         }
     }
 #endif
+
+    template< typename S >
+    static S && lowerCase( S && s )
+    {
+        std::transform(
+            s.begin(),
+            s.end(),
+            s.begin(),
+            []( unsigned char c ) { return std::tolower( c ); } );
+        return std::forward<S>(s);
+    }
+
+    nlohmann::json & jsonLowerCase( nlohmann::json & json )
+    {
+        if( json.is_object() )
+        {
+            auto & val = json.get_ref< nlohmann::json::object_t & >();
+            // somekey -> SomeKey
+            std::map< std::string, std::string > originalKeys;
+            for( auto & pair : val )
+            {
+                auto findEntry = originalKeys.find( pair.first );
+                if( findEntry != originalKeys.end() )
+                {
+                    // double entry found
+                    throw std::runtime_error( "JSON config: duplicate keys." );
+                }
+                originalKeys.emplace_hint(
+                    findEntry,
+                    lowerCase( std::string( pair.first ) ),
+                    pair.first );
+            }
+
+            nlohmann::json::object_t newObject;
+            for( auto & pair : originalKeys )
+            {
+                newObject[ pair.first ] = std::move( val[ pair.second ] );
+            }
+            val = newObject;
+
+            // now recursively
+            for( auto & pair : val )
+            {
+                jsonLowerCase( pair.second );
+            }
+        }
+        else if( json.is_array() )
+        {
+            for( auto & val : json )
+            {
+                jsonLowerCase( val );
+            }
+        }
+        else if( json.is_string() )
+        {
+            // do we really want to do this?
+            lowerCase( json.get_ref< std::string & >() );
+        }
+        return json;
+    }
 } // namespace auxiliary
 } // namespace openPMD

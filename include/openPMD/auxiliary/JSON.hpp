@@ -180,5 +180,6 @@ namespace auxiliary
 
 #endif
 
+    nlohmann::json & jsonLowerCase( nlohmann::json & );
 } // namespace auxiliary
 } // namespace openPMD

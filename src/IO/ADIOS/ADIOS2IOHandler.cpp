@@ -348,6 +348,7 @@ void ADIOS2IOHandlerImpl::createDataset(
 
         std::vector< ParameterizedOperator > operators;
         nlohmann::json options = nlohmann::json::parse( parameters.options );
+        auxiliary::jsonLowerCase( options );
         if( options.contains( "adios2" ) )
         {
             auxiliary::TracingJSON datasetConfig( options[ "adios2" ] );

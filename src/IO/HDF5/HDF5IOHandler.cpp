@@ -275,6 +275,7 @@ HDF5IOHandlerImpl::createDataset(Writable* writable,
             name = auxiliary::replace_last(name, "/", "");
 
         auto config = nlohmann::json::parse( parameters.options );
+        auxiliary::jsonLowerCase( config );
 
         // general
         bool is_resizable_dataset = false;
