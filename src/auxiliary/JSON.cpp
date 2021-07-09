@@ -231,5 +231,31 @@ namespace json
         }
         return json;
     }
+
+    std::string asStringDynamic( nlohmann::json const & value )
+    {
+        if( value.is_string() )
+        {
+            return value.get< std::string >();
+        }
+        else if( value.is_number_integer() )
+        {
+            return std::to_string( value.get< long long >() );
+        }
+        else if( value.is_number_float() )
+        {
+            return std::to_string( value.get< long double >() );
+        }
+        else if( value.is_boolean() )
+        {
+            return value.get< bool >() ? "1" : "0";
+        }
+        throw std::runtime_error( "JSON: Cannot convert value to string." );
+    }
+
+    std::string asLowerCaseStringDynamic( nlohmann::json const & value )
+    {
+        return auxiliary::lowerCase( asStringDynamic( value ) );
+    }
 } // namespace json
 } // namespace openPMD

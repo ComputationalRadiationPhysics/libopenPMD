@@ -181,5 +181,9 @@ namespace json
 #endif
 
     nlohmann::json & lowerCase( nlohmann::json & );
+
+    std::string asStringDynamic( nlohmann::json const & );
+
+    std::string asLowerCaseStringDynamic( nlohmann::json const & );
 } // namespace json
 } // namespace openPMD

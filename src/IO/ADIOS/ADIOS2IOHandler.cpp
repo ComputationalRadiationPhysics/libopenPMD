@@ -140,12 +140,8 @@ ADIOS2IOHandlerImpl::init( nlohmann::json cfg )
             if( !engineTypeConfig.is_null() )
             {
                 // convert to string
-                m_engineType = engineTypeConfig;
-                std::transform(
-                    m_engineType.begin(),
-                    m_engineType.end(),
-                    m_engineType.begin(),
-                    []( unsigned char c ) { return std::tolower( c ); } );
+                m_engineType =
+                    json::asLowerCaseStringDynamic( engineTypeConfig );
             }
         }
         auto operators = getOperators();
@@ -189,7 +185,7 @@ ADIOS2IOHandlerImpl::getOperators( json::TracingJSON cfg )
                  ++paramIterator )
             {
                 adiosParams[ paramIterator.key() ] =
-                    paramIterator.value().get< std::string >();
+                    json::asStringDynamic( paramIterator.value() );
             }
         }
         auxiliary::Option< adios2::Operator > adiosOperator =
@@ -2318,7 +2314,8 @@ namespace detail
                 for( auto it = params.json().begin(); it != params.json().end();
                      it++ )
                 {
-                    m_IO.SetParameter( it.key(), it.value() );
+                    m_IO.SetParameter(
+                        it.key(), json::asStringDynamic( it.value() ) );
                     alreadyConfigured.emplace( it.key() );
                 }
             }
