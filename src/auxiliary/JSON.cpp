@@ -26,7 +26,7 @@
 #include "openPMD/auxiliary/StringManip.hpp"
 
 #include <algorithm>
-#include <cctype> // std::isspace, std::tolower
+#include <cctype> // std::isspace
 #include <fstream>
 #include <map>
 #include <sstream>
@@ -187,17 +187,6 @@ namespace auxiliary
         }
     }
 #endif
-
-    template< typename S >
-    static S && lowerCase( S && s )
-    {
-        std::transform(
-            s.begin(),
-            s.end(),
-            s.begin(),
-            []( unsigned char c ) { return std::tolower( c ); } );
-        return std::forward<S>(s);
-    }
 
     nlohmann::json & jsonLowerCase( nlohmann::json & json )
     {
