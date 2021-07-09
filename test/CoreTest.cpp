@@ -94,7 +94,7 @@ TEST_CASE( "json_capitalization", "[core]" )
     nlohmann::json jsonUpper = nlohmann::json::parse( upper );
     nlohmann::json jsonLower = nlohmann::json::parse( lower );
     REQUIRE( jsonUpper.dump() != jsonLower.dump() );
-    auxiliary::jsonLowerCase( jsonUpper );
+    json::lowerCase( jsonUpper );
     REQUIRE( jsonUpper.dump() == jsonLower.dump() );
 }
 

@@ -34,7 +34,7 @@
 
 namespace openPMD
 {
-namespace auxiliary
+namespace json
 {
     /**
      * @brief Extend nlohmann::json with tracing of which keys have been
@@ -180,6 +180,6 @@ namespace auxiliary
 
 #endif
 
-    nlohmann::json & jsonLowerCase( nlohmann::json & );
-} // namespace auxiliary
+    nlohmann::json & lowerCase( nlohmann::json & );
+} // namespace json
 } // namespace openPMD

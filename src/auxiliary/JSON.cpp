@@ -35,7 +35,7 @@
 
 namespace openPMD
 {
-namespace auxiliary
+namespace json
 {
     TracingJSON::TracingJSON() : TracingJSON( nlohmann::json() )
     {
@@ -156,13 +156,13 @@ namespace auxiliary
                     "Failed reading JSON config from file " + filename.get() +
                     "." );
             }
-            auxiliary::jsonLowerCase( res );
+            lowerCase( res );
             return res;
         }
         else
         {
             auto res = nlohmann::json::parse( options );
-            auxiliary::jsonLowerCase( res );
+            lowerCase( res );
             return res;
         }
     }
@@ -176,19 +176,19 @@ namespace auxiliary
         {
             auto res = nlohmann::json::parse(
                 auxiliary::collective_file_read( filename.get(), comm ) );
-            auxiliary::jsonLowerCase( res );
+            lowerCase( res );
             return res;
         }
         else
         {
             auto res = nlohmann::json::parse( options );
-            auxiliary::jsonLowerCase( res );
+            lowerCase( res );
             return res;
         }
     }
 #endif
 
-    nlohmann::json & jsonLowerCase( nlohmann::json & json )
+    nlohmann::json & lowerCase( nlohmann::json & json )
     {
         if( json.is_object() )
         {
@@ -205,7 +205,7 @@ namespace auxiliary
                 }
                 originalKeys.emplace_hint(
                     findEntry,
-                    lowerCase( std::string( pair.first ) ),
+                    auxiliary::lowerCase( std::string( pair.first ) ),
                     pair.first );
             }
 
@@ -219,22 +219,22 @@ namespace auxiliary
             // now recursively
             for( auto & pair : val )
             {
-                jsonLowerCase( pair.second );
+                lowerCase( pair.second );
             }
         }
         else if( json.is_array() )
         {
             for( auto & val : json )
             {
-                jsonLowerCase( val );
+                lowerCase( val );
             }
         }
         else if( json.is_string() )
         {
             // do we really want to do this?
-            lowerCase( json.get_ref< std::string & >() );
+            auxiliary::lowerCase( json.get_ref< std::string & >() );
         }
         return json;
     }
-} // namespace auxiliary
+} // namespace json
 } // namespace openPMD
