@@ -69,21 +69,21 @@ TEST_CASE( "json_capitalization", "[core]" )
 {
   "adios2": {
     "engine": {
-      "type": "bp3",
-      "unused": "parameter",
+      "type": "BP3",
+      "unused": "PARAMETER",
       "parameters": {
         "buffergrowthfactor": "2.0",
-        "profile": "on"
+        "profile": "ON"
       }
     },
-    "unused": "as well",
+    "unused": "AS WELL",
     "dataset": {
       "operators": [
         {
-          "type": "blosc",
+          "type": "BLOSC",
           "parameters": {
               "clevel": "1",
-              "doshuffle": "blosc_bitshuffle"
+              "doshuffle": "BLOSC_BITSHUFFLE"
           }
         }
       ]

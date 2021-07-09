@@ -229,11 +229,6 @@ namespace json
                 lowerCase( val );
             }
         }
-        else if( json.is_string() )
-        {
-            // do we really want to do this?
-            auxiliary::lowerCase( json.get_ref< std::string & >() );
-        }
         return json;
     }
 } // namespace json
