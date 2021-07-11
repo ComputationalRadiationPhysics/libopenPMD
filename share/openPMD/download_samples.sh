@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 #
 
+# build directory as optional first argument, otherwise $PWD
+# we assume PWD is inside the CMake build directory
+bdir=${1:-$(pwd)}
+
+orgdir=$(pwd)
+mkdir -p ${bdir}
+cd ${bdir}
+
 mkdir -p samples/git-sample/thetaMode
 mkdir -p samples/git-sample/3d-bp4
+
 curl -sOL https://github.com/openPMD/openPMD-example-datasets/raw/draft/example-3d.tar.gz
 curl -sOL https://github.com/openPMD/openPMD-example-datasets/raw/draft/example-thetaMode.tar.gz
 curl -sOL https://github.com/openPMD/openPMD-example-datasets/raw/draft/example-3d-bp4.tar.gz
@@ -30,3 +39,5 @@ curl -sOL https://github.com/openPMD/openPMD-viewer/files/5655027/diags.zip
 unzip diags.zip
 mv diags/hdf5/data00000050.h5 samples/issue-sample/empty_alternate_fbpic_00000050.h5
 rm -rf diags.zip diags
+
+cd ${orgdir}
