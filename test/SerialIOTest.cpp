@@ -3108,7 +3108,7 @@ TEST_CASE( "serial_adios2_json_config", "[serial][adios2]" )
       "type": "bp3",
       "unused": "parameter",
       "parameters": {
-        "BufferGrowthFactor": "2.0",
+        "BufferGrowthFactor": 2,
         "Profile": "On"
       }
     },
@@ -3189,7 +3189,7 @@ TEST_CASE( "serial_adios2_json_config", "[serial][adios2]" )
         {
           "type": "blosc",
           "parameters": {
-              "clevel": "3",
+              "clevel": 3,
               "doshuffle": "BLOSC_BITSHUFFLE"
           }
         }
