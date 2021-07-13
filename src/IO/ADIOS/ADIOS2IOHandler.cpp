@@ -293,8 +293,6 @@ void ADIOS2IOHandlerImpl::createFile(
         m_iterationEncoding = parameters.encoding;
         associateWithFile( writable, shared_name );
         this->m_dirty.emplace( shared_name );
-        getFileData( shared_name ).m_mode = adios2::Mode::Write; // WORKAROUND
-        // ADIOS2 does not yet implement ReadWrite Mode
 
         writable->written = true;
         writable->abstractFilePosition =
@@ -2663,19 +2661,17 @@ namespace detail
             []( BufferedActions & ba, adios2::Engine & eng ) {
                 switch( ba.m_mode )
                 {
-                    case adios2::Mode::Write:
-                        eng.PerformPuts();
-                        break;
-                    case adios2::Mode::Read:
-                        eng.PerformGets();
-                        break;
-                    case adios2::Mode::Append:
-                        // TODO order?
-                        eng.PerformGets();
-                        eng.PerformPuts();
-                        break;
-                    default:
-                        break;
+                case adios2::Mode::Write:
+                case adios2::Mode::Append:
+                    eng.PerformPuts();
+                    break;
+                case adios2::Mode::Read:
+                    eng.PerformGets();
+                    break;
+                default:
+                    throw std::runtime_error(
+                        "[ADIOS2] Unexpected access mode." );
+                    break;
                 }
             },
             writeAttributes,
