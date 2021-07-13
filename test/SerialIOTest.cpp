@@ -4363,8 +4363,31 @@ void append_mode( std::string const & extension )
         write.flush();
     }
     {
+        Series write(
+            "../samples/append." + extension, Access::APPEND, jsonConfig );
+        if( write.backend() == "ADIOS1" )
+        {
+            REQUIRE_THROWS_AS(
+                write.flush(), error::OperationUnsupportedInBackend );
+            // destructor will be noisy now
+            return;
+        }
+
+        writeSomeIterations(
+            write.writeIterations(), std::vector< uint64_t >{ 4, 3 } );
+        write.flush();
+    }
+    {
         Series read( "../samples/append." + extension, Access::READ_ONLY );
-        REQUIRE( read.iterations.size() == 4 );
+        REQUIRE( read.iterations.size() == 5 );
+        /*
+         * Roadmap: for now, reading this should work by ignoring the last
+         * duplicate iteration.
+         * After merging https://github.com/openPMD/openPMD-api/pull/949, we
+         * should see both instances when reading.
+         * Final goal: Read only the last instance.
+         */
+        helper::listSeries( read );
     }
 }
 
